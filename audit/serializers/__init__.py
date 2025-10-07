@@ -1,0 +1,1 @@
+from .auditoria_serializer import AuditoriaSerializer

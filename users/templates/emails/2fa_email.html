@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Notificación de Autenticación en Dos Pasos</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+
+    <div style="max-width: 600px; margin: auto; background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+        
+        <!-- LOGO -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="cid:logo_image" alt="Logo" style="max-height: 80px;">
+        </div>
+
+        <h2 style="color: #2c3e50;">🔐 {{ message }}</h2>
+
+        {% if enabled %}
+        <p style="font-size: 16px;">Para completar la configuración de 2FA:</p>
+        <ol style="font-size: 16px; padding-left: 20px;">
+            <li>Abre tu aplicación de autenticación (como Google Authenticator o Authy).</li>
+            <li>Selecciona la opción para agregar una nueva cuenta.</li>
+            <li>Escanea el código QR que aparece a continuación:</li>
+        </ol>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <img src="cid:qr_code" alt="QR Code" style="max-width: 200px;">
+        </div>
+
+        <p style="font-size: 16px;">Si no puedes escanear el código, ingresa esta clave manualmente:</p>
+        <div style="background-color: #f1f1f1; padding: 10px; font-family: monospace; font-size: 18px; text-align: center; border-radius: 4px;">
+            {{ otp_secret }}
+        </div>
+        {% else %}
+        <p style="font-size: 16px;">La autenticación en dos pasos ha sido <strong>desactivada</strong> correctamente.</p>
+        <p style="font-size: 16px;">Si no realizaste esta acción, contacta con el equipo de soporte inmediatamente.</p>
+        {% endif %}
+
+        <hr style="margin: 30px 0;">
+        <p style="font-size: 14px; color: #777;">Gracias por usar nuestro sistema. Si tienes preguntas, no dudes en comunicarte con nosotros.</p>
+    </div>
+</body>
+</html>
