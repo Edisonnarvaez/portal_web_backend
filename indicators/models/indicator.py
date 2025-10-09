@@ -33,7 +33,7 @@ class Indicator(models.Model):
     denominatorSource = models.CharField(max_length=255)
     denominatorDescription = models.TextField()
     trend = models.CharField(max_length=50, choices=[('increasing', 'Creciente'), ('decreasing', 'Decreciente')]) #, ('stable', 'Estable')
-    target = models.CharField(max_length=255)
+    target = models.FloatField(max_length=255)
     author = models.CharField(max_length=255)
     process = models.ForeignKey(Process, on_delete=models.PROTECT)
     measurementFrequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)  # Periodicidad del indicador
