@@ -15,8 +15,28 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Opcional: cargar .env si python-dotenv está disponible (no es obligatorio)
+try:
+    from dotenv import load_dotenv  # pip install python-dotenv
+    load_dotenv(os.path.join(BASE_DIR, '.env'))
+except Exception:
+    pass
+
+# Variables de configuración desde el entorno
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+
+# Ejemplos de uso común en settings
+# Asegúrate de tener django-cors-headers instalado y agregado a INSTALLED_APPS/middleware si usas CORS
+CORS_ALLOWED_ORIGINS = [
+    FRONTEND_URL.rstrip('/')  # asegurarse de no duplicar '/'
+]
+
+# Para Django 4+/5+ CSRF_TRUSTED_ORIGINS requiere esquema + host
+CSRF_TRUSTED_ORIGINS = [
+    FRONTEND_URL.rstrip('/')
+]
 
 
 # Quick-start development settings - unsuitable for production
@@ -29,7 +49,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 DEBUG = True
 
 #ALLOWED_HOSTS = ["*"]
-ALLOWED_HOSTS = ["152.200.161.234", "localhost", "127.0.0.1","192.168.59.231", "red.redmedicronips.com.co"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
 
@@ -50,7 +70,7 @@ INSTALLED_APPS = [
     'processes',
     'main',
     'indicators',
-    #'audit',
+    #'audit', 
 ]
 
 MIDDLEWARE = [
@@ -160,17 +180,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 #CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
-   'http://localhost:5173',
-   'http://localhost:5174',
-    'http://127.0.0.1:5173',
-    'http://152.200.161.234:8081',
-    'http://red.redmedicronips.com.co',
-    'https://red.redmedicronips.com.co',
-    'http://www.red.redmedicronips.com.co',
-    'https://www.red.redmedicronips.com.co',
-    'https://red.redmedicronips.com.co',
-    'https://152.200.161.234:8082',
-    'https://152.200.161.234:8081',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173'
 ]
 
 

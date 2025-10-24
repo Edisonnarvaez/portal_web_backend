@@ -262,8 +262,8 @@ class PasswordResetRequestView(APIView):
         try:
             user = User.objects.get(email=email)
             token = PasswordResetTokenGenerator().make_token(user)
-            #reset_url = f"http://localhost:5173/auth/reset-password/{user.pk}/{token}/"  # Ajusta esta URL según tu frontend
-            reset_url = f"http://red.redmedicronips.com.co/auth/reset-password/{user.pk}/{token}/" 
+            frontend = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173').rstrip('/')
+            reset_url = f"{frontend}/auth/reset-password/{user.pk}/{token}/"  # ahora usa FRONTEND_URL desde settings
             context = {
                 'user': user,
                 'reset_url': reset_url,

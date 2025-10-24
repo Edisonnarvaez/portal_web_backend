@@ -54,7 +54,7 @@ servers:
     description: Servidor de desarrollo
   - url: http://127.0.0.1:8081/api  
     description: Servidor de producción local
-  - url: https://red.redmedicronips.com.co/api
+  - url: https://www.pilot.com.co
     description: Servidor de producción
 
 security:

@@ -52,7 +52,7 @@ class User(AbstractUser):
         totp = pyotp.TOTP(self.otp_secret)
         return totp.provisioning_uri(
             name=self.email,  # Usa el email como identificador
-            issuer_name="Red Medicron IPS"  
+            issuer_name="Portal de Gestion Institucional PILOT"  
         )
 
     def send_2fa_email(self, message, otp_secret=None, otp_uri=None, enabled=True):
