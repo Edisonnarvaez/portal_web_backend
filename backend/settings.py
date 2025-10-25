@@ -70,7 +70,7 @@ INSTALLED_APPS = [
     'processes',
     'main',
     'indicators',
-    #'audit', 
+    #'audit',  
 ]
 
 MIDDLEWARE = [
