@@ -30,7 +30,6 @@ graph TB
             subgraph "Core Modules"
                 USERS[Users Module]
                 COMPANIES[Companies Module]
-                PROVIDERS[Providers Module]
                 INVOICING[Invoicing Module]
                 INDICATORS[Indicators Module]
                 AUDIT[Audit Module]
@@ -72,14 +71,12 @@ graph TB
     AUTH --> USERS
     
     API_GATEWAY --> COMPANIES
-    API_GATEWAY --> PROVIDERS
     API_GATEWAY --> INVOICING
     API_GATEWAY --> INDICATORS
     API_GATEWAY --> AUDIT
     API_GATEWAY --> PROCESSES
     
     COMPANIES --> DB
-    PROVIDERS --> DB
     INVOICING --> DB
     INDICATORS --> DB
     AUDIT --> DB
@@ -118,7 +115,6 @@ graph TB
         subgraph "Views & ViewSets"
             USER_VIEWS[User Views]
             COMPANY_VIEWS[Company Views]
-            PROVIDER_VIEWS[Provider Views]
             INVOICE_VIEWS[Invoice Views]
             INDICATOR_VIEWS[Indicator Views]
         end
@@ -135,7 +131,6 @@ graph TB
         subgraph "Models & ORM"
             USER_MODEL[User Models]
             COMPANY_MODEL[Company Models]
-            PROVIDER_MODEL[Provider Models]
             INVOICE_MODEL[Invoice Models]
             INDICATOR_MODEL[Indicator Models]
         end
@@ -143,7 +138,6 @@ graph TB
         subgraph "Serializers"
             USER_SERIAL[User Serializers]
             COMPANY_SERIAL[Company Serializers]
-            PROVIDER_SERIAL[Provider Serializers]
             INVOICE_SERIAL[Invoice Serializers]
         end
     end
@@ -157,7 +151,6 @@ graph TB
 
     REST_API --> USER_VIEWS
     REST_API --> COMPANY_VIEWS
-    REST_API --> PROVIDER_VIEWS
     REST_API --> INVOICE_VIEWS
     REST_API --> INDICATOR_VIEWS
     
@@ -168,17 +161,14 @@ graph TB
     
     USER_VIEWS --> USER_SERIAL
     COMPANY_VIEWS --> COMPANY_SERIAL
-    PROVIDER_VIEWS --> PROVIDER_SERIAL
     INVOICE_VIEWS --> INVOICE_SERIAL
     
     USER_SERIAL --> USER_MODEL
     COMPANY_SERIAL --> COMPANY_MODEL
-    PROVIDER_SERIAL --> PROVIDER_MODEL
     INVOICE_SERIAL --> INVOICE_MODEL
     
     USER_MODEL --> DATABASE
     COMPANY_MODEL --> DATABASE
-    PROVIDER_MODEL --> DATABASE
     INVOICE_MODEL --> DATABASE
     INDICATOR_MODEL --> DATABASE
     
@@ -206,17 +196,6 @@ erDiagram
     
     Headquarters ||--o{ Result : generates
     Indicator ||--o{ Result : measures
-    
-    Terceros ||--o{ Factura : creates
-    Pais ||--o{ Departamento : contains
-    Departamento ||--o{ Municipio : contains
-    Terceros }o--|| Municipio : located_in
-    
-    Factura ||--o{ FacturaDetalle : contains
-    Factura }o--|| EstadoFactura : has
-    Factura }o--|| CentroCostos : assigned_to
-    Factura }o--|| CentroOperaciones : belongs_to
-    Factura }o--o| CausalDevolucion : may_have
     
     Auditoria ||--o{ SedeAuditada : audits
     Auditoria }o--|| TipoAuditoria : is_type
@@ -253,55 +232,12 @@ erDiagram
         boolean factura_estado
     }
     
-    Terceros {
-        int tercero_id PK
-        string tercero_nombre
-        string tercero_documento
-        string tercero_telefono
-        email tercero_email
-        string tercero_direccion
-    }
 ```
 
 ---
 
 ## 🔄 Flujo de Procesos de Negocio
 
-### Flujo de Gestión de Facturas Electrónicas
-
-```mermaid
-stateDiagram-v2
-    [*] --> Recepcion : Factura Recibida
-    
-    Recepcion --> Etapa1 : Validar FE
-    Etapa1 : Gestionar Factura Electrónica
-    
-    Etapa1 --> Etapa2 : FE Validada
-    Etapa1 --> Rechazada : FE Inválida
-    
-    Etapa2 : Pendiente de Revisión
-    Etapa2 --> Etapa3 : Revisión Aprobada
-    Etapa2 --> Rechazada : Revisión Rechazada
-    
-    Etapa3 : Pendiente Reconocimiento Contable
-    Etapa3 --> Etapa4 : Reconocimiento Aprobado
-    Etapa3 --> Rechazada : Reconocimiento Rechazado
-    
-    Etapa4 : Revisión de Impuestos
-    Etapa4 --> Etapa5 : Impuestos Aprobados
-    Etapa4 --> Rechazada : Impuestos Rechazados
-    
-    Etapa5 : Revisión Contraloría
-    Etapa5 --> Etapa6 : Contraloría Aprobada
-    Etapa5 --> Rechazada : Contraloría Rechazada
-    
-    Etapa6 : Pendiente de Pago
-    Etapa6 --> Pagada : Pago Procesado
-    Etapa6 --> Rechazada : Pago Rechazado
-    
-    Rechazada --> [*] : Proceso Terminado
-    Pagada --> [*] : Proceso Completado
-```
 
 ### Flujo de Autenticación con 2FA
 
@@ -354,8 +290,6 @@ graph TD
     subgraph "Custom Apps"
         USERS[users/]
         COMPANIES[companies/]
-        TERCERO[tercero/]
-        PROVIDERS[gestionProveedores/]
         INDICATORS[indicators/]
         PROCESSES[processes/]
         MAIN[main/]
@@ -371,8 +305,6 @@ graph TD
 
     DJANGO --> USERS
     DJANGO --> COMPANIES
-    DJANGO --> TERCERO
-    DJANGO --> PROVIDERS
     DJANGO --> INDICATORS
     DJANGO --> PROCESSES
     DJANGO --> MAIN
@@ -380,24 +312,18 @@ graph TD
 
     DRF --> USERS
     DRF --> COMPANIES
-    DRF --> TERCERO
-    DRF --> PROVIDERS
     DRF --> INDICATORS
     DRF --> PROCESSES
 
     JWT --> USERS
-    JWT --> PROVIDERS
     JWT --> INDICATORS
 
     USERS --> COMPANIES
-    PROVIDERS --> TERCERO
-    PROVIDERS --> COMPANIES
     INDICATORS --> COMPANIES
     AUDIT --> COMPANIES
     PROCESSES --> COMPANIES
 
     EMAIL --> USERS
-    EMAIL --> PROVIDERS
     CORS --> DRF
     WHITENOISE --> DJANGO
     WAITRESS --> DJANGO
@@ -776,8 +702,6 @@ INSTALLED_APPS = [
     # Custom apps
     'users',
     'companies',
-    'gestionProveedores',
-    'tercero',
     'indicators',
     'processes',
     'main',
