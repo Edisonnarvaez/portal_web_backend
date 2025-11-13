@@ -37,8 +37,6 @@ portal_web_backend/
 ├── backend/                    # Configuración principal de Django
 ├── users/                      # Gestión de usuarios y autenticación
 ├── companies/                  # Gestión de empresas y departamentos
-├── gestionProveedores/         # Sistema de gestión de proveedores
-├── tercero/                    # Gestión de terceros (países, departamentos, municipios)
 ├── indicators/                 # Sistema de indicadores y métricas
 ├── processes/                  # Gestión de procesos y documentos
 ├── main/                       # Funcionalidades principales
@@ -159,26 +157,12 @@ POSTGRES_PORT=5432
 - Tipos de procesos
 - Procesos empresariales
 
-### 3. Gestión de Proveedores (`gestionProveedores/`)
-- Registro de proveedores
-- Facturación electrónica
-- Estados de factura
-- Centros de costo y operaciones
-- Causales de devolución
-- Flujo de aprobación de facturas (6 etapas)
-
-### 4. Terceros (`tercero/`)
-- Gestión de países
-- Departamentos y municipios
-- Información de terceros
-- Tipos de tercero
-
-### 5. Indicadores (`indicators/`)
+### 3. Indicadores (`indicators/`)
 - Creación de indicadores
 - Resultados y métricas
 - Reportes por sede
 
-### 6. Procesos (`processes/`)
+### 4. Procesos (`processes/`)
 - Gestión de documentos
 - Subida de archivos
 - Control de procesos
@@ -204,21 +188,6 @@ POST /api/users/reset-password/     # Restablecer contraseña
 GET    /api/companies/companies/    # Listar empresas
 POST   /api/companies/companies/    # Crear empresa
 GET    /api/companies/departments/  # Listar departamentos
-```
-
-### Gestión de Proveedores
-```
-GET    /api/gestionProveedores/facturas/              # Listar facturas
-POST   /api/gestionProveedores/facturas/              # Crear factura
-GET    /api/gestionProveedores/etapa1-gestionar-fe/   # Etapa 1 - Gestionar FE
-GET    /api/gestionProveedores/etapa2-pendiente-revision/  # Etapa 2
-```
-
-### Terceros
-```
-GET    /api/terceros/terceros/      # Listar terceros
-GET    /api/terceros/paises/        # Listar países
-GET    /api/terceros/departamentos/ # Listar departamentos
 ```
 
 ### Indicadores
@@ -318,7 +287,6 @@ Para soporte técnico, contactar al equipo de desarrollo:
 
 - ✅ Sistema de autenticación completo
 - ✅ Gestión de empresas y usuarios
-- ✅ Gestión de proveedores y facturación
 - ✅ Sistema de indicadores
 - 🔄 Sistema de auditoría (en desarrollo)
 - 📋 Documentación API (en progreso)
