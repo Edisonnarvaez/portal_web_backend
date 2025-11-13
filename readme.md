@@ -7,14 +7,11 @@ Portal Web Backend es un sistema de gestión integral desarrollado en Django que
 ### Características Principales
 
 - 🏢 **Gestión de Empresas y Sedes**: Control completo de información corporativa
-- 📊 **Gestión de Proveedores**: Sistema integral para el manejo de proveedores y terceros
-- 🧾 **Facturación Electrónica**: Procesamiento y gestión de facturas electrónicas
 - 📋 **Sistema de Auditoría**: Seguimiento y control de auditorías organizacionales
 - 📈 **Indicadores de Gestión**: Sistema de métricas y reportes
 - 👥 **Gestión de Usuarios**: Sistema de autenticación JWT con roles y permisos
 - 🔒 **Autenticación 2FA**: Seguridad adicional con autenticación de dos factores
 - 📧 **Notificaciones por Email**: Sistema automatizado de notificaciones
-- 🌍 **Soporte Multiregional**: Gestión de países, departamentos y municipios
 
 ## Tecnologías Utilizadas
 
