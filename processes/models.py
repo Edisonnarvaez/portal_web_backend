@@ -25,13 +25,13 @@ ESTADOS = [
 # === Validaciones ===
 def validar_archivo_oficial(file):
     ext = file.name.lower().split('.')[-1]
-    if ext not in ['doc', 'docx', 'pdf', 'xls', 'xlsx']:
-        raise ValidationError("El archivo oficial debe ser PDF o Excel (.xls, .xlsx)")
+    if ext not in ['doc', 'docx', 'pdf', 'xls', 'xlsx', 'xlsb', 'xlsm']:
+        raise ValidationError("El archivo oficial debe ser PDF o Excel (.xls, .xlsx, .xlsb, .xlsm)")
 
 def validar_archivo_editable(file):
     ext = file.name.lower().split('.')[-1]
-    if ext not in ['doc', 'docx', 'xls', 'xlsx']:
-        raise ValidationError("El archivo editable debe ser Word o Excel (.doc, .docx, .xls, .xlsx)")
+    if ext not in ['doc', 'docx', 'xls', 'xlsx', 'xlsb', 'xlsm']:
+        raise ValidationError("El archivo editable debe ser Word o Excel (.doc, .docx, .xls, .xlsx, xlsb, xlsm)")
 
 def validar_version(value):
     """Validar que la versión sea >= 0"""
