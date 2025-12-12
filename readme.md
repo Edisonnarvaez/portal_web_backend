@@ -7,6 +7,7 @@ Portal Web Backend es un sistema de gestión integral desarrollado en Django que
 ### Características Principales
 
 - 🏢 **Gestión de Empresas y Sedes**: Control completo de información corporativa
+- 🏥 **Habilitación de Servicios de Salud (SUH)**: Sistema completo para cumplimiento de Resolución 3100/2019
 - 📋 **Sistema de Auditoría**: Seguimiento y control de auditorías organizacionales
 - 📈 **Indicadores de Gestión**: Sistema de métricas y reportes
 - 👥 **Gestión de Usuarios**: Sistema de autenticación JWT con roles y permisos
@@ -18,6 +19,7 @@ Portal Web Backend es un sistema de gestión integral desarrollado en Django que
 ### Backend
 - **Django 5.2.2**: Framework web principal
 - **Django REST Framework 3.16.0**: API REST
+- **django-filter 25.2**: Filtrado avanzado en APIs
 - **JWT Authentication**: Autenticación mediante tokens
 - **SQLite/PostgreSQL**: Base de datos (configurable)
 - **Waitress**: Servidor WSGI para producción
@@ -37,7 +39,9 @@ portal_web_backend/
 ├── indicators/                 # Sistema de indicadores y métricas
 ├── processes/                  # Gestión de procesos y documentos
 ├── main/                       # Funcionalidades principales
-├── audit/                      # Sistema de auditoría (en desarrollo)
+├── audit/                      # Sistema de auditoría
+├── normativity/                # Master data - Estándares y Criterios (Resolución 3100)
+├── habilitacion/               # Habilitación de Servicios de Salud (SUH)
 ├── media/                      # Archivos multimedia
 ├── staticfiles/               # Archivos estáticos
 └── requirements.txt           # Dependencias del proyecto
@@ -74,7 +78,12 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
-4. **Configurar variables de entorno**
+4. **Instalar django-filter (si no está en requirements)**
+```bash
+pip install django-filter
+```
+
+5. **Configurar variables de entorno**
 Crear archivo `.env` en la raíz del proyecto:
 ```env
 DJANGO_SECRET_KEY=tu_clave_secreta_aqui
@@ -90,12 +99,17 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-6. **Crear superusuario (opcional)**
+6. **Cargar datos de estándares (Resolución 3100)**
+```bash
+python cargar_estandares.py
+```
+
+7. **Crear superusuario (opcional)**
 ```bash
 python manage.py createsuperuser
 ```
 
-7. **Ejecutar el servidor**
+8. **Ejecutar el servidor**
 ```bash
 # Desarrollo
 python manage.py runserver
@@ -164,6 +178,25 @@ POSTGRES_PORT=5432
 - Subida de archivos
 - Control de procesos
 
+### 5. Sistema de Normativity (`normativity/`)
+- Estándares de Resolución 3100/2019
+- 7 Estándares: Talento Humano, Infraestructura, Dotación, Procesos, Recurso Sanguíneo, Gestión Integral, Seguridad
+- 21 Criterios de evaluación (3 por estándar)
+- Documentos normativos de referencia
+- **Endpoints**: `/api/normativity/estandares/`, `/api/normativity/criterios/`, `/api/normativity/documentos/`
+
+### 6. Habilitación de Servicios (`habilitacion/`)
+- **Registro de Prestadores**: DatosPrestador con vencimiento de habilitación
+- **Servicios por Sede**: ServicioSede con complejidad y modalidad
+- **Autoevaluación Anual**: Autoevaluacion con seguimiento de períodos
+- **Cumplimiento de Criterios**: Evaluación de 21 criterios por servicio
+- **Planes de Mejora**: Seguimiento de no-conformidades y compromisos
+- **Endpoints**:
+  - `/api/habilitacion/prestadores/` - Gestión de prestadores
+  - `/api/habilitacion/servicios/` - Servicios por sede
+  - `/api/habilitacion/autoevaluaciones/` - Evaluaciones anuales
+  - `/api/habilitacion/cumplimientos/` - Evaluación de criterios
+
 ## API REST Endpoints
 
 ### Autenticación
@@ -193,7 +226,89 @@ GET    /api/indicators/indicators/  # Listar indicadores
 POST   /api/indicators/results/     # Crear resultado
 ```
 
-## Configuración de CORS
+### Normativity (Estándares Resolución 3100)
+```
+GET    /api/normativity/estandares/           # Listar estándares
+GET    /api/normativity/estandares/{codigo}/  # Detalle estándar
+GET    /api/normativity/estandares/todos/     # Acción: todos los estándares
+GET    /api/normativity/criterios/            # Listar criterios
+GET    /api/normativity/criterios/mandatorios/ # Acción: criterios obligatorios
+GET    /api/normativity/documentos/           # Listar documentos normativos
+```
+
+### Habilitación de Servicios (SUH)
+```
+# Prestadores
+GET    /api/habilitacion/prestadores/                 # Listar
+POST   /api/habilitacion/prestadores/                 # Crear
+GET    /api/habilitacion/prestadores/{id}/            # Detalle
+GET    /api/habilitacion/prestadores/proximos_a_vencer/ # Próximos a vencer
+GET    /api/habilitacion/prestadores/{id}/servicios/  # Servicios del prestador
+
+# Servicios por Sede
+GET    /api/habilitacion/servicios/              # Listar
+POST   /api/habilitacion/servicios/              # Crear
+GET    /api/habilitacion/servicios/proximos_a_vencer/ # Próximos a vencer
+
+# Autoevaluaciones
+GET    /api/habilitacion/autoevaluaciones/                # Listar
+POST   /api/habilitacion/autoevaluaciones/                # Crear
+GET    /api/habilitacion/autoevaluaciones/{id}/resumen/   # Resumen completo
+POST   /api/habilitacion/autoevaluaciones/{id}/validar/   # Validar evaluación
+POST   /api/habilitacion/autoevaluaciones/{id}/duplicar/  # Duplicar para nuevo período
+
+# Cumplimientos (Criterios Evaluados)
+GET    /api/habilitacion/cumplimientos/              # Listar
+POST   /api/habilitacion/cumplimientos/              # Crear
+GET    /api/habilitacion/cumplimientos/sin_cumplir/  # No conformidades
+GET    /api/habilitacion/cumplimientos/con_plan_mejora/ # Con plan de mejora
+GET    /api/habilitacion/cumplimientos/mejoras_vencidas/ # Mejoras vencidas
+```
+
+## Documentación API
+
+La API está completamente documentada en Postman:
+- **Archivo**: `Portal_Habilitacion_API_completo.postman_collection.json`
+- **Cómo usar**:
+  1. Importar colección en Postman
+  2. Configurar variables: `base_url` y `jwt_token`
+  3. 40+ ejemplos de requests listos para usar
+
+### Estructura de Respuestas API
+
+#### Listado (GET)
+```json
+{
+  "count": 7,
+  "next": null,
+  "previous": null,
+  "results": [
+    { "id": 1, "codigo": "SA", "nombre": "Seguridad", ... }
+  ]
+}
+```
+
+#### Detalle (GET ID)
+```json
+{
+  "id": 1,
+  "codigo": "SA",
+  "nombre": "Seguridad",
+  "version_resolucion": "3100/2019",
+  "criterios": [ ... ]
+}
+```
+
+#### Creación (POST)
+```json
+{
+  "id": 1,
+  "codigo_reps": "110001234567",
+  "clase_prestador": "IPS",
+  "estado_habilitacion": "EN_PROCESO",
+  ...
+}
+```
 
 El proyecto está configurado para trabajar con frontend en:
 - `http://localhost:5173` (Vite/React)
@@ -237,9 +352,26 @@ El proyecto incluye `web.config` para deployment en IIS.
 python manage.py test
 
 # Test específico por app
-python manage.py test users
-python manage.py test gestionProveedores
+python manage.py test normativity         # Tests del módulo de estándares
+python manage.py test habilitacion        # Tests del módulo de habilitación
+python manage.py test users               # Tests de usuarios
+python manage.py test audit               # Tests de auditoría
+
+# Test específico de una clase
+python manage.py test normativity.tests.EstandarAPITests
+python manage.py test habilitacion.tests.DatosPrestadorAPITests
+
+# Con cobertura
+pip install coverage
+coverage run --source='.' manage.py test
+coverage report
+coverage html  # Genera reporte HTML en htmlcov/
 ```
+
+### Cobertura de Tests Esperada
+- **normativity**: 21 test methods, 6 test classes
+- **habilitacion**: 28 test methods, 8 test classes
+- **Total**: 49+ test methods cubriendo modelos, serializers y API endpoints
 
 ## Comandos Git Útiles
 
@@ -285,7 +417,12 @@ Para soporte técnico, contactar al equipo de desarrollo:
 - ✅ Sistema de autenticación completo
 - ✅ Gestión de empresas y usuarios
 - ✅ Sistema de indicadores
-- 🔄 Sistema de auditoría (en desarrollo)
+- ✅ Sistema de auditoría
+- ✅ **Módulo Normativity** (7 estándares + 21 criterios)
+- ✅ **Módulo Habilitación** (Prestadores + Servicios + Autoevaluaciones + Cumplimientos)
+- ✅ **Suite de Tests** (49+ test methods)
+- ✅ **Documentación Completa** (Architecture.md + README + Postman)
+- 🔄 Optimización de performance
 - 📋 Documentación API (en progreso)
 
 ---

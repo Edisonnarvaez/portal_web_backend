@@ -36,6 +36,11 @@ graph TB
                 PROCESSES[Processes Module]
             end
             
+            subgraph "Healthcare Compliance Modules"
+                NORMATIVITY[Normativity Module]
+                HABILITACION[Habilitacion Module]
+            end
+            
             MIDDLEWARE[Django Middleware]
             SERIALIZERS[DRF Serializers]
         end
@@ -524,7 +529,207 @@ graph TD
 
 ---
 
-## 🚀 Patrones de Arquitectura Implementados
+## 🏥 Flujo de Habilitación de Servicios de Salud (SUH)
+
+### Diagrama del Proceso de Habilitación
+
+```mermaid
+sequenceDiagram
+    participant Prestador as Prestador<br/>Salud
+    participant Sistema as Portal<br/>Habilitacion
+    participant BD as Base de<br/>Datos
+    participant Admin as Auditor<br/>MINSALUD
+
+    Prestador->>Sistema: 1. Registrar como Prestador
+    Sistema->>BD: Crear DatosPrestador
+    BD-->>Sistema: ID Prestador creado
+    
+    Prestador->>Sistema: 2. Registrar Servicios por Sede
+    Sistema->>BD: Crear ServicioSede (múltiples)
+    BD-->>Sistema: Servicios registrados
+    
+    Prestador->>Sistema: 3. Autoevaluación Anual
+    Sistema->>BD: Crear Autoevaluacion
+    BD-->>Sistema: ID Autoevaluación
+    
+    Prestador->>Sistema: 4. Diligenciar Cumplimientos
+    nota over Prestador,Sistema: 21 Criterios × Servicios = Cumplimientos
+    Sistema->>BD: Crear Cumplimiento
+    BD-->>Sistema: Evaluación registrada
+    
+    Prestador->>Sistema: 5. Generar Reporte
+    Sistema->>BD: Calcular Porcentaje Cumplimiento
+    BD-->>Sistema: Resumen preparado
+    
+    Prestador->>Sistema: 6. Enviar a Revisión
+    Sistema->>Admin: Notificar auditor
+    Admin-->>Sistema: Revisar cumplimientos
+    
+    Admin->>Sistema: Aceptar o Solicitar Mejoras
+    Sistema->>BD: Actualizar estado habilitación
+    BD-->>Prestador: Resultado de habilitación
+```
+
+### Diagrama de Relaciones de Datos - Habilitación
+
+```mermaid
+erDiagram
+    Company ||--|| DatosPrestador : "OneToOne"
+    Headquarters ||--o{ ServicioSede : "contains"
+    DatosPrestador ||--o{ ServicioSede : "provides"
+    DatosPrestador ||--o{ Autoevaluacion : "has"
+    Autoevaluacion ||--o{ Cumplimiento : "contains"
+    ServicioSede ||--o{ Cumplimiento : "evaluated_in"
+    Criterio ||--o{ Cumplimiento : "measures"
+    Estandar ||--o{ Criterio : "groups"
+    
+    DatosPrestador {
+        int id PK
+        int company_id FK "OneToOne"
+        string codigo_reps "Unique"
+        string clase_prestador "IPS|PROF|DROGUERIA|etc"
+        string estado_habilitacion "EN_PROCESO|HABILITADA|NO_HABILITADA|VENCIDA"
+        date fecha_vencimiento_habilitacion
+        text observaciones
+        timestamp fecha_creacion
+    }
+    
+    ServicioSede {
+        int id PK
+        int sede_id FK
+        string codigo_servicio "Unique together with sede"
+        string nombre_servicio
+        string modalidad "HOSPITALIZACION|CONSULTA|URGENCIAS"
+        string complejidad "BAJA|MEDIA|ALTA"
+        date fecha_vencimiento
+        text observaciones
+    }
+    
+    Autoevaluacion {
+        int id PK
+        int datos_prestador_id FK
+        int periodo "2024, 2025, etc"
+        int version "1, 2, 3 (renovaciones)"
+        string estado "BORRADOR|VALIDADA|ENVIADA|APROBADA|RECHAZADA"
+        date fecha_vencimiento
+        int usuario_responsable_id FK
+        datetime fecha_creacion
+    }
+    
+    Cumplimiento {
+        int id PK
+        int autoevaluacion_id FK
+        int servicio_sede_id FK
+        int criterio_id FK
+        string cumple "CUMPLE|NO_CUMPLE|PARCIALMENTE"
+        text hallazgo
+        text plan_mejora
+        date fecha_compromiso
+        boolean mejora_vencida
+    }
+    
+    Criterio {
+        int id PK
+        string codigo_estandar FK
+        string codigo "7.1, 7.2, etc"
+        string nombre
+        string complejidad "BAJA|MEDIA|ALTA"
+        boolean requiere_evidencia
+        text descripcion
+    }
+    
+    Estandar {
+        string codigo PK "TH|INF|DOT|PO|RS|GI|SA"
+        string nombre "Talento Humano, etc"
+        string version_resolucion "3100/2019"
+        text descripcion
+    }
+```
+
+### Acciones Disponibles en API
+
+#### Prestador - DatosPrestador Endpoints
+
+```
+GET    /api/habilitacion/prestadores/
+POST   /api/habilitacion/prestadores/
+GET    /api/habilitacion/prestadores/{id}/
+PUT    /api/habilitacion/prestadores/{id}/
+PATCH  /api/habilitacion/prestadores/{id}/
+DELETE /api/habilitacion/prestadores/{id}/
+
+# Acciones customizadas
+GET    /api/habilitacion/prestadores/proximos_a_vencer/
+GET    /api/habilitacion/prestadores/vencidas/
+GET    /api/habilitacion/prestadores/{id}/servicios/
+GET    /api/habilitacion/prestadores/{id}/autoevaluaciones/
+```
+
+#### Servicio Sede - ServicioSede Endpoints
+
+```
+GET    /api/habilitacion/servicios/
+POST   /api/habilitacion/servicios/
+GET    /api/habilitacion/servicios/{id}/
+PUT    /api/habilitacion/servicios/{id}/
+PATCH  /api/habilitacion/servicios/{id}/
+DELETE /api/habilitacion/servicios/{id}/
+
+# Acciones customizadas
+GET    /api/habilitacion/servicios/proximos_a_vencer/
+GET    /api/habilitacion/servicios/por_complejidad/?complejidad=ALTA
+GET    /api/habilitacion/servicios/{id}/cumplimientos/
+```
+
+#### Autoevaluación - Autoevaluacion Endpoints
+
+```
+GET    /api/habilitacion/autoevaluaciones/
+POST   /api/habilitacion/autoevaluaciones/
+GET    /api/habilitacion/autoevaluaciones/{id}/
+PUT    /api/habilitacion/autoevaluaciones/{id}/
+PATCH  /api/habilitacion/autoevaluaciones/{id}/
+DELETE /api/habilitacion/autoevaluaciones/{id}/
+
+# Acciones customizadas
+GET    /api/habilitacion/autoevaluaciones/{id}/resumen/
+POST   /api/habilitacion/autoevaluaciones/{id}/validar/
+POST   /api/habilitacion/autoevaluaciones/{id}/duplicar/
+GET    /api/habilitacion/autoevaluaciones/por_completar/
+```
+
+#### Cumplimiento - Cumplimiento Endpoints
+
+```
+GET    /api/habilitacion/cumplimientos/
+POST   /api/habilitacion/cumplimientos/
+GET    /api/habilitacion/cumplimientos/{id}/
+PUT    /api/habilitacion/cumplimientos/{id}/
+PATCH  /api/habilitacion/cumplimientos/{id}/
+DELETE /api/habilitacion/cumplimientos/{id}/
+
+# Acciones customizadas
+GET    /api/habilitacion/cumplimientos/sin_cumplir/
+GET    /api/habilitacion/cumplimientos/con_plan_mejora/
+GET    /api/habilitacion/cumplimientos/mejoras_vencidas/
+```
+
+#### Normativity - Referencia Maestra Endpoints
+
+```
+GET    /api/normativity/estandares/
+GET    /api/normativity/estandares/{codigo}/
+GET    /api/normativity/criterios/
+GET    /api/normativity/criterios/{id}/
+GET    /api/normativity/documentos/
+
+# Acciones customizadas
+GET    /api/normativity/estandares/todos/
+GET    /api/normativity/criterios/mandatorios/
+GET    /api/normativity/criterios/con_evidencia/
+```
+
+---
 
 ### 1. Model-View-Controller (MVC)
 ```python

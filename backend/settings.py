@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     'processes',
     'main',
     'indicators',
+    'normativity',
+    'habilitacion',
     #'audit',  
 ]
 
