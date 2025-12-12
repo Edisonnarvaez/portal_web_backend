@@ -400,6 +400,7 @@ class AutoevaluacionAdmin(admin.ModelAdmin):
     
     readonly_fields = [
         'numero_autoevaluacion',
+        'fecha_inicio_display',
         'fecha_creacion',
         'fecha_actualizacion',
         'porcentaje_cumplimiento_display',
@@ -416,13 +417,11 @@ class AutoevaluacionAdmin(admin.ModelAdmin):
                 'version',
             )
         }),
-        ('Estado', {
+        ('Estado (Editable)', {
             'fields': (
                 'estado',
-                'fecha_inicio',
                 'fecha_completacion',
                 'fecha_vencimiento',
-                'vigencia_display',
             )
         }),
         ('Resultados', {
@@ -436,8 +435,10 @@ class AutoevaluacionAdmin(admin.ModelAdmin):
                 'observaciones',
             )
         }),
-        ('Auditoría', {
+        ('Sistema (Solo Lectura)', {
             'fields': (
+                'fecha_inicio_display',
+                'vigencia_display',
                 'usuario_responsable',
                 'fecha_creacion',
                 'fecha_actualizacion',
@@ -544,6 +545,13 @@ class AutoevaluacionAdmin(admin.ModelAdmin):
             return 'Vigente'
         return 'Vencida'
     vigencia_display.short_description = 'Estado de Vigencia'
+    
+    def fecha_inicio_display(self, obj):
+        """Fecha de inicio (solo lectura - auto_now_add)."""
+        if obj.fecha_inicio:
+            return obj.fecha_inicio.strftime('%d/%m/%Y')
+        return '—'
+    fecha_inicio_display.short_description = 'Fecha de Inicio'
 
 
 # ============================================================================
