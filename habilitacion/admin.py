@@ -486,16 +486,19 @@ class AutoevaluacionAdmin(admin.ModelAdmin):
         else:
             color = '#dc3545'  # Rojo
         
+        # Formatear el porcentaje ANTES de pasarlo a format_html
+        porcentaje_formateado = f"{porcentaje:.1f}"
+        
         return format_html(
             '<div style="background-color: #e9ecef; border-radius: 4px; '
             'overflow: hidden; width: 150px;">'
             '<div style="background-color: {}; width: {}%; height: 20px; '
             'display: flex; align-items: center; justify-content: center; '
             'color: white; font-weight: bold; font-size: 12px;">'
-            '{:.1f}%</div></div>',
+            '{}%</div></div>',
             color,
-            porcentaje,
-            porcentaje
+            int(porcentaje),
+            porcentaje_formateado
         )
     porcentaje_cumplimiento_bar.short_description = 'Cumplimiento'
     

@@ -389,6 +389,8 @@ class Autoevaluacion(models.Model):
     
     def esta_vigente(self):
         """Verificar si la autoevaluación está vigente."""
+        if not self.fecha_vencimiento:
+            return False
         return self.fecha_vencimiento >= timezone.now().date()
 
 
