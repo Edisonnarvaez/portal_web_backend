@@ -14,9 +14,8 @@ import django
 from datetime import date, timedelta
 from random import choice, randint
 
-if not django.apps.apps.ready:
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
-    django.setup()
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+django.setup()
 
 from habilitacion.models import (
     DatosPrestador, ServicioSede, Autoevaluacion, Cumplimiento
