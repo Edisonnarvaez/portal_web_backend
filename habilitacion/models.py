@@ -379,6 +379,12 @@ class Autoevaluacion(models.Model):
     def __str__(self):
         return f"AUT-{self.datos_prestador.codigo_reps}-{self.periodo} v{self.version}"
     
+    def save(self, *args, **kwargs):
+        """Generar automáticamente el número de autoevaluación si no existe."""
+        if not self.numero_autoevaluacion:
+            self.numero_autoevaluacion = f"AUT-{self.datos_prestador.codigo_reps}-{self.periodo}"
+        super().save(*args, **kwargs)
+    
     def porcentaje_cumplimiento(self):
         """Calcular porcentaje general de cumplimiento."""
         total = self.cumplimientos.count()
