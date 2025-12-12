@@ -396,8 +396,11 @@ class Autoevaluacion(models.Model):
         total = self.cumplimientos.count()
         if total == 0:
             return 0
-        cumplidos = self.cumplimientos.filter(cumple=True).count()
-        return (cumplidos / total) * 100
+        # Contar solo CUMPLE y PARCIALMENTE como cumplimientos
+        cumplidos = self.cumplimientos.filter(
+            cumple__in=['CUMPLE', 'PARCIALMENTE']
+        ).count()
+        return round((cumplidos / total) * 100, 2)
     
     def esta_vigente(self):
         """Verificar si la autoevaluación está vigente."""
