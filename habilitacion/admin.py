@@ -80,7 +80,7 @@ class DatosPrestadorAdmin(admin.ModelAdmin):
     
     list_display = [
         'codigo_reps_link',
-        'company_link',
+        'headquarters_link',
         'clase_prestador_badge',
         'estado_habilitacion_badge',
         'vencimiento_status',
@@ -96,7 +96,7 @@ class DatosPrestadorAdmin(admin.ModelAdmin):
     
     search_fields = [
         'codigo_reps',
-        'company__name',
+        'headquarters__nombre',
         'aseguradora_pep',
     ]
     
@@ -110,7 +110,7 @@ class DatosPrestadorAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Identificación REPS', {
             'fields': (
-                'company',
+                'headquarters',
                 'codigo_reps',
                 'clase_prestador',
             )
@@ -151,11 +151,11 @@ class DatosPrestadorAdmin(admin.ModelAdmin):
         )
     codigo_reps_link.short_description = 'Código REPS'
     
-    def company_link(self, obj):
-        """Link a la empresa."""
-        url = reverse('admin:companies_company_change', args=[obj.company.pk])
-        return format_html('<a href="{}">{}</a>', url, obj.company.name)
-    company_link.short_description = 'Empresa'
+    def headquarters_link(self, obj):
+        """Link a la sede."""
+        url = reverse('admin:companies_headquarters_change', args=[obj.headquarters.pk])
+        return format_html('<a href="{}">{}</a>', url, obj.headquarters.nombre)
+    headquarters_link.short_description = 'Sede (Headquarters)'
     
     def clase_prestador_badge(self, obj):
         """Badge de clase de prestador."""

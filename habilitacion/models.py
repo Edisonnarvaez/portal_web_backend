@@ -2,7 +2,9 @@
 habilitacion/models.py
 
 Modelos transaccionales para la habilitación de servicios de salud.
-Integración con los modelos core (Company, Headquarters) mediante OneToOne.
+Integración con los modelos core (Company, Headquarters).
+DatosPrestador vinculado a Headquarters (OneToOne) para permitir habilitación
+de una única sede o múltiples sedes de la misma empresa.
 """
 
 from django.db import models
@@ -21,8 +23,10 @@ User = get_user_model()
 
 class DatosPrestador(models.Model):
     """
-    Datos específicos de habilitación vinculados a una Company.
-    OneToOne: Una empresa tiene un único perfil de prestador habilitado.
+    Datos específicos de habilitación vinculados a una Headquarters (Sede).
+    OneToOne: Una sede tiene un único perfil de prestador habilitado.
+    Permite gestionar habilitación tanto de una única sede como de múltiples sedes
+    de la misma empresa.
     """
     
     CLASE_PRESTADOR_CHOICES = [
@@ -40,11 +44,13 @@ class DatosPrestador(models.Model):
         ('CANCELADA', 'Cancelada'),
     ]
     
-    company = models.OneToOneField(
-        Company,
+    headquarters = models.OneToOneField(
+        Headquarters,
         on_delete=models.PROTECT,
         related_name='datos_habilitacion',
-        verbose_name="Empresa"
+        #null=True,
+        #blank=True,
+        verbose_name="IPS / Prestador"
     )
     
     # Identificación REPS
@@ -126,7 +132,7 @@ class DatosPrestador(models.Model):
         verbose_name_plural = "Datos de Prestadores"
     
     def __str__(self):
-        return f"{self.codigo_reps} - {self.company.name}"
+        return f"{self.codigo_reps} - {self.headquarters.nombre}"
     
     def dias_para_vencimiento(self):
         """Calcular días para vencimiento de habilitación."""

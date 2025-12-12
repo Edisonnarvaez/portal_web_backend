@@ -22,17 +22,17 @@ from habilitacion.models import (
     DatosPrestador, ServicioSede, Autoevaluacion, Cumplimiento
 )
 from normativity.models import Criterio
-from companies.models import Company
+from companies.models import Company, Headquarters
 
 print("\n" + "="*80)
 print("  CREAR DATOS DE EJEMPLO")
 print("="*80)
 
 # ============================================================================
-# 1. CREAR COMPANY EJEMPLO
+# 1. CREAR COMPANY Y HEADQUARTERS EJEMPLO
 # ============================================================================
 
-print("\n1️⃣  CREAR EMPRESA DE EJEMPLO")
+print("\n1️⃣  CREAR EMPRESA Y SEDE DE EJEMPLO")
 print("-" * 80)
 
 company, created = Company.objects.get_or_create(
@@ -51,6 +51,24 @@ if created:
 else:
     print(f"⊕ Empresa existente: {company.nombre}")
 
+# Crear Headquarters (Sede) asociada a la Company
+headquarters, created = Headquarters.objects.get_or_create(
+    company=company,
+    codigo="SEDE-001",
+    defaults={
+        'nombre': "Sede Principal",
+        'direccion': "Carrera 10 #15-45, Bogotá",
+        'ciudad': "Bogotá",
+        'telefono': "312 555 1234",
+        'estado': True,
+    }
+)
+
+if created:
+    print(f"✓ Sede creada: {headquarters.nombre}")
+else:
+    print(f"⊕ Sede existente: {headquarters.nombre}")
+
 # ============================================================================
 # 2. CREAR DATOS PRESTADOR
 # ============================================================================
@@ -61,7 +79,7 @@ print("-" * 80)
 datos_prestador, created = DatosPrestador.objects.get_or_create(
     codigo_reps="9009876543",
     defaults={
-        'company': company,
+        'headquarters': headquarters,
         'clase_prestador': 'IPS',
         'estado_habilitacion': 'EN_PROCESO',
         'fecha_inscripcion': date(2020, 1, 15),
@@ -230,6 +248,7 @@ print(f"  └─ Vencimiento: {auto.fecha_vencimiento}")
 
 print(f"\n  DATOS PRESTADOR")
 print(f"  ├─ Empresa: {company.nombre}")
+print(f"  ├─ Sede: {headquarters.nombre}")
 print(f"  ├─ Código REPS: {datos_prestador.codigo_reps}")
 print(f"  ├─ Clase: {datos_prestador.clase_prestador}")
 print(f"  └─ Estado Habilitación: {datos_prestador.estado_habilitacion}")
