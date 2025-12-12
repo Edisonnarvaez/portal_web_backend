@@ -154,7 +154,7 @@ class DatosPrestadorAdmin(admin.ModelAdmin):
     def headquarters_link(self, obj):
         """Link a la sede."""
         url = reverse('admin:companies_headquarters_change', args=[obj.headquarters.pk])
-        return format_html('<a href="{}">{}</a>', url, obj.headquarters.nombre)
+        return format_html('<a href="{}">{}</a>', url, obj.headquarters.name)
     headquarters_link.short_description = 'Sede (Headquarters)'
     
     def clase_prestador_badge(self, obj):

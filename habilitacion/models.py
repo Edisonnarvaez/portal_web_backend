@@ -132,7 +132,7 @@ class DatosPrestador(models.Model):
         verbose_name_plural = "Datos de Prestadores"
     
     def __str__(self):
-        return f"{self.codigo_reps} - {self.headquarters.nombre}"
+        return f"{self.codigo_reps} - {self.headquarters.name}"
     
     def dias_para_vencimiento(self):
         """Calcular días para vencimiento de habilitación."""
