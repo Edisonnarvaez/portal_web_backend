@@ -17,6 +17,16 @@ class Indicator(models.Model):
         ('average', 'Promedio'),
         ('ratio', 'Razón'),
     ]
+    
+    CLASS_CHOICES = [
+        ('strategic', 'Estratégico'),
+        ('mission-related', 'Misional'),
+        ('regulatory', 'Normativo'),
+        ('operational', 'Operativo'),
+        ('tactical', 'Táctico'),
+        ('support', 'Soporte'),
+        ('other', 'Otro'),
+    ]
 
     name = models.CharField(max_length=255)
     description = models.TextField()
@@ -32,6 +42,7 @@ class Indicator(models.Model):
     denominatorResponsible = models.CharField(max_length=255)
     denominatorSource = models.CharField(max_length=255)
     denominatorDescription = models.TextField()
+    classindicator = models.CharField(max_length=50, choices=CLASS_CHOICES)
     trend = models.CharField(max_length=50, choices=[('increasing', 'Creciente'), ('decreasing', 'Decreciente')]) #, ('stable', 'Estable')
     target = models.FloatField(max_length=255)
     author = models.CharField(max_length=255)
