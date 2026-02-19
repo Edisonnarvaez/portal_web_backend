@@ -20,7 +20,7 @@ class DatosPrestadorListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listados de DatosPrestador."""
     
     company_name = serializers.CharField(
-        source='company.name',
+        source='headquarters.company.name',
         read_only=True
     )
     estado_display = serializers.CharField(
@@ -57,8 +57,9 @@ class DatosPrestadorListSerializer(serializers.ModelSerializer):
 class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
     """Serializer detallado para DatosPrestador con validaciones."""
     
-    company_id = serializers.PrimaryKeyRelatedField(
-        queryset=Company.objects.all(),
+    headquarters_id = serializers.PrimaryKeyRelatedField(
+        queryset=Headquarters.objects.all(),
+        source='headquarters',
         write_only=True
     )
     company_detail = serializers.SerializerMethodField()
@@ -82,7 +83,7 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'codigo_reps',
-            'company_id',
+            'headquarters_id',
             'company_detail',
             'clase_prestador',
             'clase_prestador_display',
@@ -113,11 +114,12 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
         ]
     
     def get_company_detail(self, obj):
-        """Detalle de la company vinculada."""
+        """Detalle de la company vinculada a través de headquarters."""
+        company = obj.headquarters.company
         return {
-            'id': obj.company.id,
-            'name': obj.company.name,
-            'nit': getattr(obj.company, 'nit', None),
+            'id': company.id,
+            'name': company.name,
+            'nit': getattr(company, 'nit', None),
         }
     
     def get_dias_vencimiento(self, obj):
@@ -343,7 +345,7 @@ class AutoevaluacionDetailSerializer(serializers.ModelSerializer):
         return {
             'id': obj.datos_prestador.id,
             'codigo_reps': obj.datos_prestador.codigo_reps,
-            'company_name': obj.datos_prestador.company.name,
+            'company_name': obj.datos_prestador.headquarters.company.name,
         }
     
     def get_usuario_responsable_detail(self, obj):
@@ -507,9 +509,9 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
         return [
             {
                 'id': doc.id,
-                'titulo': doc.titulo,
-                'tipo': doc.tipo,
-                'archivo': str(doc.archivo) if doc.archivo else None,
+                'titulo': doc.nombre_documento,
+                'tipo': doc.tipo_documento,
+                'archivo': str(doc.archivo_oficial) if doc.archivo_oficial else None,
             }
             for doc in documentos
         ]

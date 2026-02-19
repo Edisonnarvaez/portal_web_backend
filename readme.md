@@ -42,9 +42,20 @@ portal_web_backend/
 ├── audit/                      # Sistema de auditoría
 ├── normativity/                # Master data - Estándares y Criterios (Resolución 3100)
 ├── habilitacion/               # Habilitación de Servicios de Salud (SUH)
+│   ├── models.py               # DatosPrestador, ServicioSede, Autoevaluacion, Cumplimiento
+│   ├── serializers.py          # Serializers con validaciones complejas
+│   ├── views.py                # ViewSets con acciones personalizadas
+│   ├── urls.py                 # Rutas API
+│   └── tests.py                # Suite de tests
 ├── media/                      # Archivos multimedia
-├── staticfiles/               # Archivos estáticos
-└── requirements.txt           # Dependencias del proyecto
+├── staticfiles/                # Archivos estáticos
+├── documentos.md               # 📖 Guía completa para frontend
+├── architecture.md             # 🏗️ Arquitectura técnica del sistema
+├── readme.md                   # Este archivo
+├── requirements.txt            # Dependencias del proyecto
+├── manage.py                   # Gestor de Django
+├── Portal_Habilitacion_API_completo.postman_collection.json # Postman Collection
+└── run_waitress.py            # Script para iniciar servidor Waitress
 ```
 
 ## Instalación y Configuración
@@ -186,16 +197,119 @@ POSTGRES_PORT=5432
 - **Endpoints**: `/api/normativity/estandares/`, `/api/normativity/criterios/`, `/api/normativity/documentos/`
 
 ### 6. Habilitación de Servicios (`habilitacion/`)
-- **Registro de Prestadores**: DatosPrestador con vencimiento de habilitación
-- **Servicios por Sede**: ServicioSede con complejidad y modalidad
-- **Autoevaluación Anual**: Autoevaluacion con seguimiento de períodos
-- **Cumplimiento de Criterios**: Evaluación de 21 criterios por servicio
-- **Planes de Mejora**: Seguimiento de no-conformidades y compromisos
-- **Endpoints**:
-  - `/api/habilitacion/prestadores/` - Gestión de prestadores
-  - `/api/habilitacion/servicios/` - Servicios por sede
-  - `/api/habilitacion/autoevaluaciones/` - Evaluaciones anuales
-  - `/api/habilitacion/cumplimientos/` - Evaluación de criterios
+
+**Módulo Completo de Habilitación de Servicios Unificados (SUH)**
+
+Sistema completo para gestión de habilitación de Instituciones Prestadoras de Servicios (IPS) y prestadores individuales según Resolución 3100/2019 de Colombia.
+
+#### **Modelos Principales**:
+
+1. **DatosPrestador** - Información de habilitación
+   - Código REPS único
+   - Clase de prestador (IPS, PROF, PH, PJ)
+   - Estado de habilitación (HABILITADA, EN_PROCESO, SUSPENDIDA, NO_HABILITADA, CANCELADA)
+   - Fechas de inscripción, renovación y vencimiento
+   - Información de seguros (aseguradora, póliza, vigencia)
+   - Relación OneToOne con Headquarters (Sede)
+
+2. **ServicioSede** - Servicios de salud por sede
+   - Código del servicio (asignado por REPS)
+   - Nombre y descripción del servicio
+   - Modalidad (INTRAMURAL, AMBULATORIA, TELEMEDICINA, URGENCIAS, AMBULANCIA)
+   - Complejidad (BAJA, MEDIA, ALTA)
+   - Estado y fechas de habilitación
+   - Vencimiento de habilitación por modalidad
+
+3. **Autoevaluación** - Evaluación anual de cumplimiento
+   - Período fiscal (2024-2028)
+   - Versión del documento (para renovaciones)
+   - Estados (BORRADOR, EN_CURSO, COMPLETADA, REVISADA, VALIDADA)
+   - Porcentaje de cumplimiento calculado
+   - Responsable de evaluación
+   - Observaciones y notas
+
+4. **Cumplimiento** - Evaluación de criterios específicos
+   - Resultado (CUMPLE, NO_CUMPLE, PARCIALMENTE, NO_APLICA)
+   - Hallazgos y observaciones detalladas
+   - Planes de mejora con responsables
+   - Fechas comprometidas de mejora
+   - Documentos de evidencia adjuntos
+   - Relación pivote: Autoevaluacion + ServicioSede + Criterio
+
+#### **Endpoints API Completos**:
+
+**Prestadores - DatosPrestador**
+```
+GET    /api/habilitacion/prestadores/              # Listar con paginación
+POST   /api/habilitacion/prestadores/              # Crear nuevo
+GET    /api/habilitacion/prestadores/{id}/         # Detalle completo
+PUT    /api/habilitacion/prestadores/{id}/         # Actualizar completo
+PATCH  /api/habilitacion/prestadores/{id}/         # Actualizar parcial
+DELETE /api/habilitacion/prestadores/{id}/         # Eliminar
+
+# Acciones personalizadas
+GET    /api/habilitacion/prestadores/proximos_a_vencer/
+GET    /api/habilitacion/prestadores/vencidas/
+GET    /api/habilitacion/prestadores/{id}/servicios/
+GET    /api/habilitacion/prestadores/{id}/autoevaluaciones/
+POST   /api/habilitacion/prestadores/{id}/iniciar_renovacion/
+```
+
+**Servicios - ServicioSede**
+```
+GET    /api/habilitacion/servicios/                # Listar con filtros
+POST   /api/habilitacion/servicios/                # Crear
+GET    /api/habilitacion/servicios/{id}/           # Detalle
+PUT    /api/habilitacion/servicios/{id}/           # Actualizar
+PATCH  /api/habilitacion/servicios/{id}/           # Parcial
+DELETE /api/habilitacion/servicios/{id}/           # Eliminar
+
+# Acciones personalizadas
+GET    /api/habilitacion/servicios/proximos_a_vencer/
+GET    /api/habilitacion/servicios/por_complejidad/?complejidad=ALTA
+GET    /api/habilitacion/servicios/{id}/cumplimientos/
+```
+
+**Autoevaluaciones**
+```
+GET    /api/habilitacion/autoevaluaciones/         # Listar
+POST   /api/habilitacion/autoevaluaciones/         # Crear
+GET    /api/habilitacion/autoevaluaciones/{id}/    # Detalle
+PUT    /api/habilitacion/autoevaluaciones/{id}/    # Actualizar
+PATCH  /api/habilitacion/autoevaluaciones/{id}/    # Parcial
+DELETE /api/habilitacion/autoevaluaciones/{id}/    # Eliminar
+
+# Acciones personalizadas
+GET    /api/habilitacion/autoevaluaciones/por_completar/
+GET    /api/habilitacion/autoevaluaciones/{id}/resumen/
+POST   /api/habilitacion/autoevaluaciones/{id}/validar/
+POST   /api/habilitacion/autoevaluaciones/{id}/duplicar/
+```
+
+**Cumplimientos de Criterios**
+```
+GET    /api/habilitacion/cumplimientos/            # Listar
+POST   /api/habilitacion/cumplimientos/            # Crear evaluación
+GET    /api/habilitacion/cumplimientos/{id}/       # Detalle
+PUT    /api/habilitacion/cumplimientos/{id}/       # Actualizar
+PATCH  /api/habilitacion/cumplimientos/{id}/       # Parcial
+DELETE /api/habilitacion/cumplimientos/{id}/       # Eliminar
+
+# Acciones personalizadas
+GET    /api/habilitacion/cumplimientos/sin_cumplir/
+GET    /api/habilitacion/cumplimientos/con_plan_mejora/
+GET    /api/habilitacion/cumplimientos/mejoras_vencidas/
+```
+
+#### **Características Avanzadas**:
+
+- **Vencimientos y Alertas**: Cálculo automático de días para vencimiento
+- **Estado de Cumplimiento**: Seguimiento visual del % de cumplimiento por autoevaluación
+- **Planes de Mejora**: Gestión integral de no-conformidades con responsables y fechas
+- **Documentación**: Adjunción de evidencia en cumplimientos
+- **Duplicación**: Copiar autoevaluaciones para períodos siguientes
+- **Validación**: Workflow de validación de autoevaluaciones
+- **Reportes**: Resumen estadístico de cumplimiento por período
 
 ## API REST Endpoints
 
@@ -265,14 +379,66 @@ GET    /api/habilitacion/cumplimientos/con_plan_mejora/ # Con plan de mejora
 GET    /api/habilitacion/cumplimientos/mejoras_vencidas/ # Mejoras vencidas
 ```
 
-## Documentación API
+## Documentación y Recursos
 
-La API está completamente documentada en Postman:
-- **Archivo**: `Portal_Habilitacion_API_completo.postman_collection.json`
-- **Cómo usar**:
-  1. Importar colección en Postman
-  2. Configurar variables: `base_url` y `jwt_token`
-  3. 40+ ejemplos de requests listos para usar
+### Documentación del Proyecto
+
+1. **documentos.md** - Guía Completa para Frontend
+   - Arquitectura de modelos detallada
+   - Especificación de todos los endpoints
+   - Ejemplos de requests/responses en JSON
+   - Pantallas recomendadas a desarrollar
+   - Validaciones y reglas de negocio
+   - Stack técnico recomendado
+   - Información sobre autenticación JWT
+
+2. **architecture.md** - Arquitectura Técnica del Sistema
+   - Diagramas de arquitectura de alto nivel
+   - Arquitectura de capas
+   - Modelo de datos detallado
+   - Flujos de procesos de negocio
+   - Descripción de módulos y dependencias
+   - Estrategias de escalabilidad y performance
+   - Decisiones de arquitectura (ADRs)
+
+3. **Portal_Habilitacion_API_completo.postman_collection.json**
+   - Colección de Postman con 40+ ejemplos
+   - Todos los endpoints documentados
+   - Variables preconfiguradas
+   - Ejemplos de requests y responses
+   - Ambiente de desarrollo y producción
+
+### Acceso a Documentación
+
+```bash
+# Ver documentación del módulo de habilitación
+cat documentos.md
+
+# Ver arquitectura técnica
+cat architecture.md
+
+# Importar en Postman
+Portal_Habilitacion_API_completo.postman_collection.json
+```
+
+### Estándares y Criterios (Resolución 3100/2019)
+
+La base de datos incluye los 7 estándares y 21 criterios de evaluación:
+
+1. **Talento Humano (TH)** - 3 criterios
+2. **Infraestructura Física (INF)** - 3 criterios
+3. **Dotación, Medicamentos e Insumos (DOT)** - 3 criterios
+4. **Procesos Organizacionales (PO)** - 3 criterios
+5. **Recurso Sanguíneo e Hemoterapia (RS)** - 3 criterios
+6. **Gestión Integral del Servicio (GI)** - 3 criterios
+7. **Seguridad del Paciente y Ambiente (SA)** - 3 criterios
+
+Acceso a través de:
+```
+GET /api/normativity/estandares/
+GET /api/normativity/criterios/
+GET /api/normativity/criterios/mandatorios/
+```
 
 ### Estructura de Respuestas API
 
@@ -406,9 +572,22 @@ Este proyecto es propiedad privada. Todos los derechos reservados.
 ## Soporte
 
 Para soporte técnico, contactar al equipo de desarrollo:
-- **Backend Lead**: [Contacto del desarrollador]
-- **Project Manager**: [Contacto del PM]
+- **Backend Lead**: Edison Narváez
+- **Project Manager**: Equipo de Desarrollo
 - **Repository**: https://github.com/Edisonnarvaez/portal_web_backend
+
+## Recursos Adicionales
+
+- 📖 [documentos.md](documentos.md) - Guía Completa para Desarrollo Frontend
+- 🏗️ [architecture.md](architecture.md) - Arquitectura Técnica del Sistema
+- 📮 [Portal_Habilitacion_API_completo.postman_collection.json](Portal_Habilitacion_API_completo.postman_collection.json) - Postman Collection
+
+## Versión del Sistema
+
+- **Versión**: 1.0.0
+- **Última Actualización**: Febrero 2026
+- **Django**: 5.2.2
+- **Python**: 3.12.10+
 
 ## Estado del Proyecto
 
@@ -419,11 +598,22 @@ Para soporte técnico, contactar al equipo de desarrollo:
 - ✅ Sistema de indicadores
 - ✅ Sistema de auditoría
 - ✅ **Módulo Normativity** (7 estándares + 21 criterios)
-- ✅ **Módulo Habilitación** (Prestadores + Servicios + Autoevaluaciones + Cumplimientos)
+- ✅ **Módulo Habilitación**:
+  - ✅ Gestión de Prestadores (DatosPrestador)
+  - ✅ Gestión de Servicios por Sede (ServicioSede)
+  - ✅ Autoevaluaciones Anuales (Autoevaluacion)
+  - ✅ Evaluación de Cumplimientos (Cumplimiento)
+  - ✅ Planes de Mejora y Seguimiento
+  - ✅ Alertas de Vencimiento
+  - ✅ Reportes y Estadísticas
 - ✅ **Suite de Tests** (49+ test methods)
-- ✅ **Documentación Completa** (Architecture.md + README + Postman)
+- ✅ **Documentación Completa**:
+  - ✅ Architecture.md (Diagramas y flujos)
+  - ✅ README.md (Este archivo)
+  - ✅ documentos.md (Guía frontend completa)
+  - ✅ Postman Collection (40+ ejemplos)
 - 🔄 Optimización de performance
-- 📋 Documentación API (en progreso)
+- 📋 Integración con APIs externas (gobierno)
 
 ---
 

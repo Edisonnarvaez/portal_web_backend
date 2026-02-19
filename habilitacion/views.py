@@ -44,7 +44,7 @@ class DatosPrestadorViewSet(viewsets.ModelViewSet):
     - GET /api/habilitacion/prestadores/{id}/renovar/ → Preparar renovación
     """
     
-    queryset = DatosPrestador.objects.select_related('company', 'usuario_responsable')
+    queryset = DatosPrestador.objects.select_related('headquarters', 'headquarters__company', 'usuario_responsable')
     permission_classes = [IsAuthenticated]
     filter_backends = [
         DjangoFilterBackend,
@@ -116,7 +116,7 @@ class DatosPrestadorViewSet(viewsets.ModelViewSet):
         """Servicios habilitados de un prestador (por sede)."""
         prestador = self.get_object()
         servicios = ServicioSede.objects.filter(
-            sede__company=prestador.company
+            sede__company=prestador.headquarters.company
         )
         
         serializer = ServicioSedeListSerializer(servicios, many=True)
@@ -275,7 +275,8 @@ class AutoevaluacionViewSet(viewsets.ModelViewSet):
     
     queryset = Autoevaluacion.objects.select_related(
         'datos_prestador',
-        'datos_prestador__company',
+        'datos_prestador__headquarters',
+        'datos_prestador__headquarters__company',
         'usuario_responsable'
     ).prefetch_related('cumplimientos')
     permission_classes = [IsAuthenticated]

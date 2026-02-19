@@ -12,7 +12,7 @@ from .views import EstandarViewSet, CriterioViewSet, DocumentoNormativoViewSet
 router = DefaultRouter()
 router.register(r'estandares', EstandarViewSet, basename='estandar')
 router.register(r'criterios', CriterioViewSet, basename='criterio')
-router.register(r'documentos', DocumentoNormativoViewSet, basename='documento-normativo')
+router.register(r'documentos-normativos', DocumentoNormativoViewSet, basename='documento-normativo')
 
 urlpatterns = [
     path('', include(router.urls)),
