@@ -6,7 +6,26 @@ Administración para Planes de Mejora y Hallazgos.
 
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import PlanMejora, Hallazgo
+from .models import PlanMejora, Hallazgo, SoportePlan
+
+
+class SoportePlanInline(admin.TabularInline):
+    model = SoportePlan
+    extra = 0
+    readonly_fields = ['nombre_original', 'tamano_bytes', 'subido_por', 'fecha_subida']
+    fields = ['archivo', 'nombre_original', 'tipo_soporte', 'descripcion', 'tamano_bytes', 'subido_por', 'fecha_subida']
+
+
+@admin.register(SoportePlan)
+class SoportePlanAdmin(admin.ModelAdmin):
+    list_display = ['nombre_original', 'plan_mejora', 'tipo_soporte', 'tamano_legible_col', 'subido_por', 'fecha_subida']
+    list_filter = ['tipo_soporte', 'fecha_subida']
+    search_fields = ['nombre_original', 'descripcion', 'plan_mejora__numero_plan']
+    readonly_fields = ['nombre_original', 'tamano_bytes', 'subido_por', 'fecha_subida']
+
+    def tamano_legible_col(self, obj):
+        return obj.tamano_legible
+    tamano_legible_col.short_description = 'Tamaño'
 
 
 @admin.register(PlanMejora)
@@ -22,6 +41,7 @@ class PlanMejoraAdmin(admin.ModelAdmin):
     list_editable = ['fecha_vencimiento']
     date_hierarchy = 'fecha_creacion'
     list_per_page = 25
+    inlines = [SoportePlanInline]
 
     fieldsets = (
         ('Identificación', {

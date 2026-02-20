@@ -191,6 +191,7 @@ class ServicioSedeDetailSerializer(serializers.ModelSerializer):
     
     sede_id = serializers.PrimaryKeyRelatedField(
         queryset=Headquarters.objects.all(),
+        source='sede',
         write_only=True
     )
     sede_detail = serializers.SerializerMethodField()
@@ -292,6 +293,7 @@ class AutoevaluacionDetailSerializer(serializers.ModelSerializer):
     
     datos_prestador_id = serializers.PrimaryKeyRelatedField(
         queryset=DatosPrestador.objects.all(),
+        source='datos_prestador',
         write_only=True
     )
     datos_prestador_detail = serializers.SerializerMethodField()
@@ -304,6 +306,11 @@ class AutoevaluacionDetailSerializer(serializers.ModelSerializer):
     vigente = serializers.SerializerMethodField()
     total_cumplimientos = serializers.SerializerMethodField()
     cumplimientos_data = serializers.SerializerMethodField()
+
+    # ─── Integración con app mejoras ───
+    planes_mejora_count = serializers.SerializerMethodField()
+    hallazgos_count = serializers.SerializerMethodField()
+    mejoras_resumen = serializers.SerializerMethodField()
     
     class Meta:
         model = Autoevaluacion
@@ -325,6 +332,9 @@ class AutoevaluacionDetailSerializer(serializers.ModelSerializer):
             'porcentaje_cumplimiento',
             'total_cumplimientos',
             'cumplimientos_data',
+            'planes_mejora_count',
+            'hallazgos_count',
+            'mejoras_resumen',
             'fecha_creacion',
             'fecha_actualizacion',
         ]
@@ -339,6 +349,9 @@ class AutoevaluacionDetailSerializer(serializers.ModelSerializer):
             'vigente',
             'total_cumplimientos',
             'cumplimientos_data',
+            'planes_mejora_count',
+            'hallazgos_count',
+            'mejoras_resumen',
         ]
     
     def get_datos_prestador_detail(self, obj):
@@ -377,6 +390,31 @@ class AutoevaluacionDetailSerializer(serializers.ModelSerializer):
             'no_aplica': cumplimientos.filter(cumple='NO_APLICA').count(),
         }
 
+    def get_planes_mejora_count(self, obj):
+        """Total de planes de mejora vinculados a esta autoevaluación."""
+        from mejoras.models import PlanMejora
+        return PlanMejora.objects.filter(autoevaluacion=obj).count()
+
+    def get_hallazgos_count(self, obj):
+        """Total de hallazgos vinculados a esta autoevaluación."""
+        from mejoras.models import Hallazgo
+        return Hallazgo.objects.filter(autoevaluacion=obj).count()
+
+    def get_mejoras_resumen(self, obj):
+        """Resumen de planes de mejora y hallazgos para esta autoevaluación."""
+        from mejoras.models import PlanMejora, Hallazgo
+        planes = PlanMejora.objects.filter(autoevaluacion=obj)
+        hallazgos = Hallazgo.objects.filter(autoevaluacion=obj)
+        return {
+            'total_planes': planes.count(),
+            'planes_pendientes': planes.filter(estado='PENDIENTE').count(),
+            'planes_en_curso': planes.filter(estado='EN_CURSO').count(),
+            'planes_completados': planes.filter(estado='COMPLETADO').count(),
+            'total_hallazgos': hallazgos.count(),
+            'hallazgos_abiertos': hallazgos.filter(estado='ABIERTO').count(),
+            'hallazgos_cerrados': hallazgos.filter(estado='CERRADO').count(),
+        }
+
 
 class CumplimientoListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listados de Cumplimiento."""
@@ -398,6 +436,8 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
         read_only=True
     )
     tiene_plan_mejora = serializers.SerializerMethodField()
+    planes_mejora_count = serializers.SerializerMethodField()
+    hallazgos_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Cumplimiento
@@ -409,12 +449,32 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
             'cumple',
             'cumple_display',
             'tiene_plan_mejora',
+            'planes_mejora_count',
+            'hallazgos_count',
             'fecha_compromiso',
         ]
         read_only_fields = fields
     
     def get_tiene_plan_mejora(self, obj):
-        return obj.tiene_plan_mejora()
+        """Verifica si tiene planes de mejora en la app mejoras."""
+        if hasattr(obj, 'planes_mejora') and obj.planes_mejora.exists():
+            return True
+        # Fallback al campo TextField antiguo
+        return bool(obj.plan_mejora)
+
+    def get_planes_mejora_count(self, obj):
+        """Cantidad de planes de mejora vinculados (app mejoras)."""
+        if hasattr(obj, 'planes_mejora'):
+            return obj.planes_mejora.count()
+        return 0
+
+    def get_hallazgos_count(self, obj):
+        """Cantidad de hallazgos vinculados a la autoevaluación + criterio."""
+        from mejoras.models import Hallazgo
+        return Hallazgo.objects.filter(
+            autoevaluacion=obj.autoevaluacion,
+            criterio=obj.criterio
+        ).count()
 
 
 class CumplimientoDetailSerializer(serializers.ModelSerializer):
@@ -422,14 +482,17 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
     
     autoevaluacion_id = serializers.PrimaryKeyRelatedField(
         queryset=Autoevaluacion.objects.all(),
+        source='autoevaluacion',
         write_only=True
     )
     servicio_sede_id = serializers.PrimaryKeyRelatedField(
         queryset=ServicioSede.objects.all(),
+        source='servicio_sede',
         write_only=True
     )
     criterio_id = serializers.PrimaryKeyRelatedField(
         queryset=Criterio.objects.all(),
+        source='criterio',
         write_only=True
     )
     
@@ -446,6 +509,10 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
     )
     tiene_plan_mejora = serializers.SerializerMethodField()
     mejora_vencida = serializers.SerializerMethodField()
+
+    # ─── Integración con app mejoras ───
+    planes_mejora_vinculados = serializers.SerializerMethodField()
+    hallazgos_vinculados = serializers.SerializerMethodField()
     
     class Meta:
         model = Cumplimiento
@@ -465,6 +532,8 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             'fecha_compromiso',
             'tiene_plan_mejora',
             'mejora_vencida',
+            'planes_mejora_vinculados',
+            'hallazgos_vinculados',
             'documentos_evidencia_list',
             'fecha_creacion',
             'fecha_actualizacion',
@@ -480,6 +549,8 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             'responsable_mejora_detail',
             'tiene_plan_mejora',
             'mejora_vencida',
+            'planes_mejora_vinculados',
+            'hallazgos_vinculados',
         ]
     
     def get_autoevaluacion_detail(self, obj):
@@ -526,7 +597,46 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
         }
     
     def get_tiene_plan_mejora(self, obj):
-        return obj.tiene_plan_mejora()
+        """Verifica si tiene planes de mejora vinculados (app mejoras o campo legacy)."""
+        if hasattr(obj, 'planes_mejora') and obj.planes_mejora.exists():
+            return True
+        return bool(obj.plan_mejora)
     
     def get_mejora_vencida(self, obj):
         return obj.mejora_vencida()
+
+    def get_planes_mejora_vinculados(self, obj):
+        """Lista de planes de mejora vinculados (app mejoras)."""
+        if hasattr(obj, 'planes_mejora'):
+            planes = obj.planes_mejora.all()
+            return [
+                {
+                    'id': p.id,
+                    'numero_plan': p.numero_plan,
+                    'estado': p.estado,
+                    'porcentaje_avance': p.porcentaje_avance,
+                    'fecha_vencimiento': p.fecha_vencimiento,
+                    'esta_vencido': p.esta_vencido,
+                }
+                for p in planes
+            ]
+        return []
+
+    def get_hallazgos_vinculados(self, obj):
+        """Lista de hallazgos vinculados (app mejoras) por autoevaluacion + criterio."""
+        from mejoras.models import Hallazgo
+        hallazgos = Hallazgo.objects.filter(
+            autoevaluacion=obj.autoevaluacion,
+            criterio=obj.criterio
+        )
+        return [
+            {
+                'id': h.id,
+                'numero_hallazgo': h.numero_hallazgo,
+                'tipo': h.tipo,
+                'severidad': h.severidad,
+                'estado': h.estado,
+                'tiene_plan': h.plan_mejora_id is not None,
+            }
+            for h in hallazgos
+        ]

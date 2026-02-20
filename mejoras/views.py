@@ -9,11 +9,12 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
 
-from .models import PlanMejora, Hallazgo
+from .models import PlanMejora, Hallazgo, SoportePlan
 from .serializers import (
     PlanMejoraListSerializer,
     PlanMejoraDetailSerializer,
@@ -23,6 +24,8 @@ from .serializers import (
     HallazgoDetailSerializer,
     HallazgoCreateUpdateSerializer,
     EstadisticasHallazgosSerializer,
+    SoportePlanSerializer,
+    SoportePlanUploadSerializer,
 )
 
 
@@ -180,6 +183,52 @@ class PlanMejoraViewSet(viewsets.ModelViewSet):
         ).order_by('origen_tipo')
 
         return Response(list(data))
+
+    # ─── Soporte / Archivos adjuntos ───
+
+    @action(detail=True, methods=['get', 'post'], url_path='soportes',
+            parser_classes=[MultiPartParser, FormParser, JSONParser])
+    def soportes(self, request, pk=None):
+        """
+        GET: Lista soportes del plan.
+        POST: Sube un nuevo soporte (multipart/form-data).
+        """
+        plan = self.get_object()
+
+        if request.method == 'GET':
+            soportes = plan.soportes.all()
+            serializer = SoportePlanSerializer(soportes, many=True)
+            return Response(serializer.data)
+
+        # POST
+        data = request.data.copy()
+        data['plan_mejora'] = plan.id
+        serializer = SoportePlanUploadSerializer(
+            data=data, context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        soporte = serializer.save()
+        return Response(
+            SoportePlanSerializer(soporte).data,
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=True, methods=['delete'], url_path='soportes/(?P<soporte_id>[0-9]+)')
+    def eliminar_soporte(self, request, pk=None, soporte_id=None):
+        """Elimina un soporte específico del plan."""
+        plan = self.get_object()
+        try:
+            soporte = plan.soportes.get(id=soporte_id)
+        except SoportePlan.DoesNotExist:
+            return Response(
+                {'detail': 'Soporte no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        # Eliminar archivo físico
+        if soporte.archivo:
+            soporte.archivo.delete(save=False)
+        soporte.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ═══════════════════════════════════════════════════════════════════

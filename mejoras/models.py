@@ -8,11 +8,42 @@ Ciclo PHVA: Un hallazgo (de cualquier origen) genera un plan de mejora
 con seguimiento de estado, porcentaje de avance y fechas de vencimiento.
 """
 
+import os
+import uuid
+
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from datetime import timedelta
+
+
+# ═══════════════════════════════════════════════════════════════════
+# UTILIDADES
+# ═══════════════════════════════════════════════════════════════════
+
+ALLOWED_SOPORTE_EXTENSIONS = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg', '.xls', '.xlsx']
+
+
+def soporte_upload_path(instance, filename):
+    """
+    Genera ruta única para soportes: media/SoportesPlanes/<plan_id>/<uuid>_<filename>
+    """
+    ext = os.path.splitext(filename)[1].lower()
+    unique_name = f"{uuid.uuid4().hex[:12]}_{filename}"
+    plan_id = instance.plan_mejora_id or 'sin_plan'
+    return os.path.join('SoportesPlanes', str(plan_id), unique_name)
+
+
+def validate_soporte_extension(value):
+    """Valida que la extensión del archivo sea permitida."""
+    ext = os.path.splitext(value.name)[1].lower()
+    if ext not in ALLOWED_SOPORTE_EXTENSIONS:
+        raise ValidationError(
+            f'Extensión "{ext}" no permitida. '
+            f'Extensiones válidas: {", ".join(ALLOWED_SOPORTE_EXTENSIONS)}'
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -434,3 +465,96 @@ class Hallazgo(models.Model):
         elif self.origen_tipo == self.OrigenTipo.INDICADOR and self.resultado_indicador:
             return f"Indicador: {self.resultado_indicador.indicator.name}"
         return self.get_origen_tipo_display()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SOPORTE / DOCUMENTO ADJUNTO DE PLAN DE MEJORA
+# ═══════════════════════════════════════════════════════════════════
+
+class SoportePlan(models.Model):
+    """
+    Archivo soporte adjunto a un Plan de Mejora.
+    Soporta PDF, Word (.doc/.docx), imágenes (.png/.jpg) y Excel (.xls/.xlsx).
+    Almacenados en media/SoportesPlanes/<plan_id>/<uuid>_<nombre_original>.
+    """
+
+    class TipoSoporte(models.TextChoices):
+        EVIDENCIA = 'EVIDENCIA', 'Evidencia'
+        ACTA = 'ACTA', 'Acta'
+        INFORME = 'INFORME', 'Informe'
+        FOTOGRAFIA = 'FOTOGRAFIA', 'Fotografía'
+        PLAN_ACCION = 'PLAN_ACCION', 'Plan de Acción'
+        OTRO = 'OTRO', 'Otro'
+
+    plan_mejora = models.ForeignKey(
+        PlanMejora,
+        on_delete=models.CASCADE,
+        related_name='soportes',
+        help_text="Plan de mejora al que pertenece este soporte"
+    )
+    archivo = models.FileField(
+        upload_to=soporte_upload_path,
+        validators=[validate_soporte_extension],
+        help_text="Archivo soporte (PDF, Word, PNG, Excel)"
+    )
+    nombre_original = models.CharField(
+        max_length=255,
+        help_text="Nombre original del archivo subido"
+    )
+    tipo_soporte = models.CharField(
+        max_length=20,
+        choices=TipoSoporte.choices,
+        default=TipoSoporte.EVIDENCIA,
+        help_text="Tipo de soporte"
+    )
+    descripcion = models.CharField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text="Descripción breve del soporte"
+    )
+    tamano_bytes = models.PositiveIntegerField(
+        default=0,
+        help_text="Tamaño del archivo en bytes"
+    )
+    subido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='soportes_subidos',
+        help_text="Usuario que subió el archivo"
+    )
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'mejoras_soporte_plan'
+        ordering = ['-fecha_subida']
+        verbose_name = 'Soporte de Plan'
+        verbose_name_plural = 'Soportes de Planes'
+
+    def __str__(self):
+        return f"{self.nombre_original} ({self.plan_mejora.numero_plan})"
+
+    def save(self, *args, **kwargs):
+        if self.archivo and not self.nombre_original:
+            self.nombre_original = os.path.basename(self.archivo.name)
+        if self.archivo and not self.tamano_bytes:
+            try:
+                self.tamano_bytes = self.archivo.size
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
+    @property
+    def extension(self):
+        return os.path.splitext(self.nombre_original)[1].lower()
+
+    @property
+    def tamano_legible(self):
+        """Retorna el tamaño en formato legible (KB, MB)."""
+        if self.tamano_bytes < 1024:
+            return f"{self.tamano_bytes} B"
+        elif self.tamano_bytes < 1024 * 1024:
+            return f"{self.tamano_bytes / 1024:.1f} KB"
+        return f"{self.tamano_bytes / (1024 * 1024):.1f} MB"

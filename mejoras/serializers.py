@@ -6,7 +6,64 @@ Incluye serializers de listado, detalle, creación y estadísticas.
 """
 
 from rest_framework import serializers
-from .models import PlanMejora, Hallazgo
+from .models import PlanMejora, Hallazgo, SoportePlan
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SOPORTE DE PLAN - SERIALIZERS
+# ═══════════════════════════════════════════════════════════════════
+
+class SoportePlanSerializer(serializers.ModelSerializer):
+    """Serializer para listar/detalle de soportes."""
+    tipo_soporte_display = serializers.CharField(source='get_tipo_soporte_display', read_only=True)
+    tamano_legible = serializers.CharField(read_only=True)
+    extension = serializers.CharField(read_only=True)
+    subido_por_nombre = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SoportePlan
+        fields = [
+            'id', 'plan_mejora', 'archivo', 'nombre_original',
+            'tipo_soporte', 'tipo_soporte_display',
+            'descripcion', 'tamano_bytes', 'tamano_legible', 'extension',
+            'subido_por', 'subido_por_nombre', 'fecha_subida',
+        ]
+
+    def get_subido_por_nombre(self, obj):
+        if obj.subido_por:
+            nombre = f"{obj.subido_por.first_name} {obj.subido_por.last_name}".strip()
+            return nombre or obj.subido_por.username
+        return None
+
+
+class SoportePlanUploadSerializer(serializers.ModelSerializer):
+    """Serializer para subir soportes (multipart/form-data)."""
+
+    class Meta:
+        model = SoportePlan
+        fields = [
+            'id', 'plan_mejora', 'archivo',
+            'tipo_soporte', 'descripcion',
+        ]
+
+    def validate_archivo(self, value):
+        # Máximo 10 MB
+        max_size = 10 * 1024 * 1024
+        if value.size > max_size:
+            raise serializers.ValidationError(
+                f"El archivo excede el tamaño máximo de 10 MB. Tamaño: {value.size / (1024*1024):.1f} MB"
+            )
+        return value
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            validated_data['subido_por'] = request.user
+        archivo = validated_data.get('archivo')
+        if archivo:
+            validated_data['nombre_original'] = archivo.name
+            validated_data['tamano_bytes'] = archivo.size
+        return super().create(validated_data)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -30,6 +87,7 @@ class PlanMejoraListSerializer(serializers.ModelSerializer):
     dias_restantes = serializers.IntegerField(read_only=True)
     proximo_a_vencer = serializers.BooleanField(read_only=True)
     hallazgos_count = serializers.SerializerMethodField()
+    soportes_count = serializers.SerializerMethodField()
 
     class Meta:
         model = PlanMejora
@@ -47,7 +105,7 @@ class PlanMejoraListSerializer(serializers.ModelSerializer):
             'porcentaje_avance', 'estado', 'estado_display',
             'evidencia', 'observaciones',
             'esta_vencido', 'dias_restantes', 'proximo_a_vencer',
-            'hallazgos_count',
+            'hallazgos_count', 'soportes_count',
             'fecha_creacion', 'fecha_actualizacion',
         ]
 
@@ -60,21 +118,29 @@ class PlanMejoraListSerializer(serializers.ModelSerializer):
     def get_hallazgos_count(self, obj):
         return obj.hallazgos.count()
 
+    def get_soportes_count(self, obj):
+        return obj.soportes.count()
+
 
 class PlanMejoraDetailSerializer(PlanMejoraListSerializer):
-    """Serializer completo para detalle, incluye hallazgos asociados."""
+    """Serializer completo para detalle, incluye hallazgos y soportes."""
     hallazgos = serializers.SerializerMethodField()
+    soportes = SoportePlanSerializer(many=True, read_only=True)
+    soportes_count = serializers.SerializerMethodField()
     origen_detalle = serializers.CharField(read_only=True)
 
     class Meta(PlanMejoraListSerializer.Meta):
         fields = PlanMejoraListSerializer.Meta.fields + [
-            'hallazgos', 'origen_detalle',
+            'hallazgos', 'soportes', 'soportes_count', 'origen_detalle',
         ]
 
     def get_hallazgos(self, obj):
         """Lista resumida de hallazgos asociados al plan."""
         from .serializers import HallazgoListSerializer
         return HallazgoListSerializer(obj.hallazgos.all(), many=True).data
+
+    def get_soportes_count(self, obj):
+        return obj.soportes.count()
 
 
 class PlanMejoraCreateUpdateSerializer(serializers.ModelSerializer):

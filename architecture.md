@@ -39,6 +39,7 @@ graph TB
             subgraph "Healthcare Compliance Modules"
                 NORMATIVITY[Normativity Module]
                 HABILITACION[Habilitacion Module]
+                MEJORAS[Mejoras Module]
             end
             
             MIDDLEWARE[Django Middleware]
@@ -80,6 +81,7 @@ graph TB
     API_GATEWAY --> INDICATORS
     API_GATEWAY --> AUDIT
     API_GATEWAY --> PROCESSES
+    API_GATEWAY --> MEJORAS
     
     COMPANIES --> DB
     INVOICING --> DB
@@ -87,6 +89,8 @@ graph TB
     AUDIT --> DB
     PROCESSES --> DB
     USERS --> DB
+    MEJORAS --> DB
+    MEJORAS --> FILE_STORAGE
     
     TASK_QUEUE --> EMAIL_SERVICE
     EMAIL_SERVICE --> SMTP
@@ -202,9 +206,21 @@ erDiagram
     Headquarters ||--o{ Result : generates
     Indicator ||--o{ Result : measures
     
-    Auditoria ||--o{ SedeAuditada : audits
     Auditoria }o--|| TipoAuditoria : is_type
     Auditoria }o--|| EntidadAuditoria : performed_by
+    Auditoria ||--o{ MiembroEquipoAuditor : has_team
+    Auditoria ||--o{ HallazgoAuditoria : produces
+    Auditoria ||--o{ ActaReunion : documents
+    ProgramaAuditoria }o--o{ Auditoria : includes
+    
+    PlanMejora ||--o{ Hallazgo : contains
+    PlanMejora ||--o{ SoportePlan : attachments
+    PlanMejora }o--o| Autoevaluacion : from_habilitacion
+    PlanMejora }o--o| Auditoria : from_auditoria
+    HallazgoAuditoria }o--o| Hallazgo : traces_to
+    HallazgoAuditoria }o--o| PlanMejora : linked_plan
+    Cumplimiento }o--o{ PlanMejora : improvement_plan
+    Cumplimiento }o--o{ Hallazgo : has_findings
     
     User {
         int id PK
@@ -299,6 +315,9 @@ graph TD
         PROCESSES[processes/]
         MAIN[main/]
         AUDIT[audit/]
+        MEJORAS[mejoras/]
+        NORMATIVITY[normativity/]
+        HABILITACION[habilitacion/]
     end
 
     subgraph "External Dependencies"
@@ -314,11 +333,17 @@ graph TD
     DJANGO --> PROCESSES
     DJANGO --> MAIN
     DJANGO --> AUDIT
+    DJANGO --> MEJORAS
+    DJANGO --> NORMATIVITY
+    DJANGO --> HABILITACION
 
     DRF --> USERS
     DRF --> COMPANIES
     DRF --> INDICATORS
     DRF --> PROCESSES
+    DRF --> MEJORAS
+    DRF --> AUDIT
+    DRF --> HABILITACION
 
     JWT --> USERS
     JWT --> INDICATORS
@@ -327,6 +352,13 @@ graph TD
     INDICATORS --> COMPANIES
     AUDIT --> COMPANIES
     PROCESSES --> COMPANIES
+    MEJORAS --> HABILITACION
+    MEJORAS --> AUDIT
+    MEJORAS --> INDICATORS
+    MEJORAS --> PROCESSES
+    HABILITACION --> NORMATIVITY
+    HABILITACION --> COMPANIES
+    AUDIT --> MEJORAS
 
     EMAIL --> USERS
     CORS --> DRF
@@ -738,6 +770,136 @@ erDiagram
         text descripcion
         boolean estado
     }
+```
+
+### Diagrama de Relaciones - Mejoras y Auditorías
+
+```mermaid
+erDiagram
+    PlanMejora ||--o{ Hallazgo : "contains"
+    PlanMejora ||--o{ SoportePlan : "attachments"
+    PlanMejora }o--o| Autoevaluacion : "from_habilitacion"
+    PlanMejora }o--o| Auditoria : "from_auditoria"
+    PlanMejora }o--o| Indicator : "from_indicador"
+    PlanMejora }o--o| Process : "from_proceso"
+    
+    Auditoria }o--|| TipoAuditoria : "classified_as"
+    Auditoria }o--o| EntidadAuditoria : "performed_by"
+    Auditoria ||--o{ MiembroEquipoAuditor : "team"
+    Auditoria ||--o{ HallazgoAuditoria : "findings"
+    Auditoria ||--o{ ActaReunion : "minutes"
+    ProgramaAuditoria }o--o{ Auditoria : "includes"
+    
+    HallazgoAuditoria }o--o| Hallazgo : "traces_to_mejora"
+    HallazgoAuditoria }o--o| PlanMejora : "linked_plan"
+    
+    PlanMejora {
+        int id PK
+        string numero_plan "Unique"
+        string titulo
+        string origen_tipo "HABILITACION|AUDITORIA|INDICADOR|PROCESO|OTRO"
+        string estado "IDENTIFICADO|EN_ANALISIS|EN_IMPLEMENTACION|EN_VERIFICACION|CERRADO|CANCELADO"
+        date fecha_inicio
+        date fecha_vencimiento
+        int porcentaje_avance "0-100"
+        int responsable_id FK
+        int autoevaluacion_id FK "Nullable"
+        int auditoria_id FK "Nullable"
+    }
+    
+    Hallazgo {
+        int id PK
+        string numero_hallazgo "Unique"
+        int plan_mejora_id FK
+        string tipo "NC_MAYOR|NC_MENOR|OBSERVACION|OPORTUNIDAD|FORTALEZA"
+        string severidad "CRITICA|ALTA|MEDIA|BAJA"
+        string estado "ABIERTO|EN_TRATAMIENTO|CERRADO|VERIFICADO"
+        text descripcion
+        date fecha_identificacion
+    }
+    
+    SoportePlan {
+        int id PK
+        int plan_mejora_id FK
+        string tipo_soporte "EVIDENCIA|ACTA|INFORME|FOTOGRAFIA|PLAN_ACCION|OTRO"
+        file archivo "media/SoportesPlanes/ UUID"
+        string nombre_original
+        int tamano_bytes "max 10MB"
+        int subido_por_id FK
+    }
+    
+    Auditoria {
+        int id PK
+        string titulo
+        string fase "PROGRAMADA|NOTIFICADA|EN_EJECUCION|INFORME|SEGUIMIENTO|CERRADA|CANCELADA"
+        string clasificacion "INTERNA|EXTERNA|COMBINADA"
+        int tipo_auditoria_id FK
+        int entidad_auditora_id FK
+        date fecha_programada
+        date fecha_inicio
+        date fecha_cierre
+    }
+    
+    HallazgoAuditoria {
+        int id PK
+        int auditoria_id FK
+        string numero "Unique"
+        string tipo "NC_MAYOR|NC_MENOR|OBSERVACION|OPORTUNIDAD|FORTALEZA"
+        text evidencia_objetiva
+        int hallazgo_mejora_id FK "Nullable to mejoras.Hallazgo"
+        int plan_mejora_id FK "Nullable to mejoras.PlanMejora"
+    }
+    
+    MiembroEquipoAuditor {
+        int id PK
+        int auditoria_id FK
+        int usuario_id FK
+        string rol "LIDER|AUDITOR|OBSERVADOR|EXPERTO_TECNICO"
+    }
+    
+    ActaReunion {
+        int id PK
+        int auditoria_id FK
+        string tipo_acta "APERTURA|CIERRE|SEGUIMIENTO"
+        date fecha
+        text contenido
+    }
+    
+    ProgramaAuditoria {
+        int id PK
+        string nombre
+        string estado "BORRADOR|APROBADO|EN_EJECUCION|COMPLETADO"
+        int periodo "2024-2028"
+        float avance_porcentaje "Calculated"
+    }
+    
+    TipoAuditoria {
+        int tipo_id PK
+        string nombre "Unique"
+        boolean requiere_entidad_externa
+    }
+    
+    EntidadAuditoria {
+        int entidad_id PK
+        string nombre "Unique"
+        string tipo_entidad "ENTE_CONTROL|CERTIFICADORA|etc"
+    }
+```
+
+### Flujo de Ciclo de Vida de Auditoría
+
+```mermaid
+stateDiagram-v2
+    [*] --> PROGRAMADA : Crear auditoría
+    PROGRAMADA --> NOTIFICADA : Notificar equipo
+    NOTIFICADA --> EN_EJECUCION : Iniciar ejecución
+    EN_EJECUCION --> INFORME : Generar informe
+    INFORME --> SEGUIMIENTO : Iniciar seguimiento
+    SEGUIMIENTO --> CERRADA : Cerrar auditoría
+    PROGRAMADA --> CANCELADA : Cancelar
+    NOTIFICADA --> CANCELADA : Cancelar
+    CERRADA --> [*]
+    CANCELADA --> [*]
 ```
 
 ### Flujo Transaccional de Habilitación
@@ -1204,6 +1366,28 @@ CACHES = {
   - ✅ Testing independiente
   - ❌ Complejidad en relaciones entre apps
 
+#### ADR-004: Módulo Transversal de Mejoras
+- **Fecha**: 2026-02-19
+- **Estado**: Aceptado
+- **Contexto**: Planes de mejora y hallazgos originados en habilitación y auditorías
+- **Decisión**: App separada `mejoras/` con FKs opcionales a habilitación, auditoría, indicadores y procesos
+- **Consecuencias**:
+  - ✅ Origen trazable (HABILITACION, AUDITORIA, INDICADOR, PROCESO, OTRO)
+  - ✅ Un solo punto de gestión de planes de mejora
+  - ✅ Soportes/adjuntos con validación de extensión y tamaño (10 MB)
+  - ❌ Relaciones cruzadas entre apps requieren cuidado en migraciones
+
+#### ADR-005: Ciclo de Vida de Auditorías con Fases
+- **Fecha**: 2026-02-19
+- **Estado**: Aceptado
+- **Contexto**: Auditorías requieren control estricto de progreso
+- **Decisión**: 7 fases con transiciones validadas (PROGRAMADA→NOTIFICADA→EN_EJECUCION→INFORME→SEGUIMIENTO→CERRADA o CANCELADA)
+- **Consecuencias**:
+  - ✅ Trazabilidad completa del ciclo de vida
+  - ✅ Transiciones validadas con `puede_avanzar_a()` y `avanzar_fase()`
+  - ✅ Fechas automáticas por fase
+  - ❌ Complejidad en lógica de transiciones
+
 ---
 
 ---
@@ -1220,35 +1404,39 @@ CACHES = {
 - [x] Documentación Frontend (documentos.md)
 - [x] Postman Collection con 40+ ejemplos
 
-### Fase 2: Escalabilidad (Q2 2025) 🔄 EN PROGRESO
+### Fase 2: Mejoras y Auditorías (Q1 2026) ✅ COMPLETADO
+- [x] Módulo transversal `mejoras/` (PlanMejora, Hallazgo, SoportePlan)
+- [x] Carga de soportes/adjuntos (PDF, Word, Excel, PNG) hasta 10 MB
+- [x] Almacenamiento en `media/SoportesPlanes/` con nombres únicos UUID
+- [x] Rediseño completo del módulo `audit/` con ciclo de vida de 7 fases
+- [x] Equipos auditores, hallazgos con trazabilidad, actas, programas
+- [x] Integración habilitación ↔ mejoras (contadores, resúmenes vinculados)
+- [x] Integración auditorías ↔ mejoras (HallazgoAuditoria → Hallazgo/PlanMejora)
+- [x] Suite de tests ampliada (100+ test methods, 54 endpoints verificados)
+- [x] Documentación actualizada (documentos.md v2.0, README v2.0, architecture.md)
+
+### Fase 3: Escalabilidad (Q2 2026) 🔄 PENDIENTE
 - [ ] Migrar a PostgreSQL en producción (preparado)
 - [ ] Implementar Redis para caching de consultas frecuentes
 - [ ] Configurar Celery para envío de emails asincrónico
 - [ ] Implementar monitoring con Sentry
 - [ ] Circuit breakers para APIs externas
 
-### Fase 3: Optimización (Q3 2025)
+### Fase 4: Optimización (Q3 2026)
 - [ ] Implementar CDN para archivos estáticos
 - [ ] Optimización de performance de APIs (< 200ms)
 - [ ] Database connection pooling
 - [ ] API rate limiting y throttling
 - [ ] Caching a nivel de serializers
 
-### Fase 4: Avanzada (Q4 2025)
+### Fase 5: Avanzada (Q4 2026)
 - [ ] Event Sourcing para auditoría completa
-- [ ] Migrar a arquitectura de microservicios (opcional)
 - [ ] GraphQL API complementaria
 - [ ] Machine Learning para análisis de cumplimiento
-- [ ] Integración con APIs del gobierno
-
-### Fase 5: Mantenimiento y Soporte (2026+)
-- [ ] Soporte a PostgreSQL production
+- [ ] Integración con APIs del gobierno (REPS, MinSalud)
 - [ ] CI/CD pipeline completo
-- [ ] Disaster recovery planning
-- [ ] Performance monitoring y alerting
-- [ ] Actualizaciones de seguridad regulares
 
 ---
 
-*Documento actualizado: Octubre 2025*  
-*Próxima revisión: Enero 2026*
+*Documento actualizado: Febrero 2026*  
+*Próxima revisión: Mayo 2026*
