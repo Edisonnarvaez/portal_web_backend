@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from ..models.auditoria import Auditoria
 from ..serializers import AuditoriaSerializer
 
-class FacturaViewSet(viewsets.ModelViewSet):
+class AuditoriaViewSet(viewsets.ModelViewSet):
     queryset = Auditoria.objects.all()
     serializer_class = AuditoriaSerializer
 

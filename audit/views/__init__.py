@@ -1,1 +1,3 @@
 from .auditoria_view import AuditoriaViewSet
+from .entidad_auditoria_view import EntidadAuditoriaViewSet
+from .tipo_auditoria_view import TipoAuditoriaViewSet

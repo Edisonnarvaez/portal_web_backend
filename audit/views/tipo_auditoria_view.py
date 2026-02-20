@@ -5,7 +5,7 @@ from ..models.tipo_auditoria import TipoAuditoria
 from ..serializers import TipoAuditoriaSerializer
 
 
-class FacturaViewSet(viewsets.ModelViewSet):
+class TipoAuditoriaViewSet(viewsets.ModelViewSet):
     queryset = TipoAuditoria.objects.all()
     serializer_class = TipoAuditoriaSerializer
 

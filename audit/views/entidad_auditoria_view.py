@@ -5,7 +5,7 @@ from ..models.entidad_auditoria import EntidadAuditoria
 from ..serializers import EntidadAuditoriaSerializer
 
 
-class FacturaViewSet(viewsets.ModelViewSet):
+class EntidadAuditoriaViewSet(viewsets.ModelViewSet):
     queryset = EntidadAuditoria.objects.all()
     serializer_class = EntidadAuditoriaSerializer
 

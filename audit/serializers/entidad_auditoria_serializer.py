@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models.auditoria import EntidadAuditoria 
+from ..models.entidad_auditoria import EntidadAuditoria 
 
 
 class EntidadAuditoriaSerializer(serializers.ModelSerializer):

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SedeAuditada
+from ..models.sede_auditada import SedeAuditada
 from django.contrib.auth import get_user_model
 
 User = get_user_model()

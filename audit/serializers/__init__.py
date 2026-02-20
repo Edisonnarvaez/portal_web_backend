@@ -1,1 +1,4 @@
 from .auditoria_serializer import AuditoriaSerializer
+from .entidad_auditoria_serializer import EntidadAuditoriaSerializer
+from .tipo_auditoria_serializer import TipoAuditoriaSerializer
+from .sede_auditada_serializer import SedeAuditadaSerializer

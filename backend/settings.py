@@ -73,7 +73,8 @@ INSTALLED_APPS = [
     'indicators',
     'normativity',
     'habilitacion',
-    #'audit',  
+    'mejoras',
+    'audit',
 ]
 
 MIDDLEWARE = [

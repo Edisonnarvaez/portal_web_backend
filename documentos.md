@@ -1595,4 +1595,398 @@ El módulo habilitacion se relaciona con:
 | Fecha | Versión | Cambios |
 |-------|---------|---------|
 | 2026-02-18 | 1.0 | Documento inicial completo |
+| 2026-02-20 | 1.1 | Añadido módulo Mejoras (Planes de Mejora y Hallazgos) y Auditoría |
+
+
+---
+
+# Módulo de Mejoras (Planes de Mejora y Hallazgos)
+
+Fecha: 2026-02-20  
+Versión: 1.0  
+App: `mejoras`
+
+---
+
+## Introducción
+
+El módulo de **Mejoras** es una app transversal que gestiona **Planes de Mejora** y **Hallazgos** provenientes de tres orígenes:
+
+- **HABILITACION**: Autoevaluaciones y cumplimientos del módulo de habilitación
+- **AUDITORIA**: Auditorías del módulo de auditoría
+- **INDICADOR**: Resultados del módulo de indicadores
+
+### Base URL
+```
+http://localhost:8000/api/mejoras/
+```
+
+---
+
+## Arquitectura de Modelos
+
+### 1. PlanMejora
+
+**Descripción**: Plan de mejora con trazabilidad al origen (habilitación, auditoría o indicadores).
+
+**Relaciones**:
+- ForeignKey → `habilitacion.Cumplimiento` (nullable)
+- ForeignKey → `habilitacion.Autoevaluacion` (nullable)
+- ForeignKey → `normativity.Criterio` (nullable)
+- ForeignKey → `audit.Auditoria` (nullable)
+- ForeignKey → `indicators.Result` (nullable)
+- ForeignKey → `User` (responsable, nullable)
+- ForeignKey ← `Hallazgo` (múltiples)
+
+**Campos Principales**:
+
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|-------------|-------------|
+| `id` | Integer | Sí (PK) | Identificador único |
+| `numero_plan` | CharField(50) | Sí | Identificador único del plan (ej: PM-2026-001) |
+| `descripcion` | TextField | Sí | Descripción general del plan |
+| `origen_tipo` | CharField(20) | Sí | Origen: `HABILITACION`, `AUDITORIA`, `INDICADOR` |
+| `cumplimiento` | ForeignKey | No | FK a Cumplimiento (habilitación) |
+| `autoevaluacion` | ForeignKey | No* | FK a Autoevaluación (requerido si origen=HABILITACION) |
+| `criterio` | ForeignKey | No | FK a Criterio (normatividad) |
+| `auditoria` | ForeignKey | No* | FK a Auditoría (requerido si origen=AUDITORIA) |
+| `resultado_indicador` | ForeignKey | No* | FK a Result (requerido si origen=INDICADOR) |
+| `estado_cumplimiento_actual` | TextField | No | Estado actual del cumplimiento |
+| `objetivo_mejorado` | TextField | No | Objetivo a alcanzar |
+| `acciones_implementar` | TextField | Sí | Acciones a implementar |
+| `responsable` | ForeignKey | No | FK a User |
+| `fecha_inicio` | DateField | No | Fecha de inicio del plan |
+| `fecha_vencimiento` | DateField | No | Fecha límite |
+| `fecha_implementacion` | DateField | No | Fecha real de implementación (auto al completar) |
+| `porcentaje_avance` | IntegerField | Sí | 0-100, default 0 |
+| `estado` | CharField(20) | Sí | `PENDIENTE`, `EN_CURSO`, `COMPLETADO`, `VENCIDO` |
+| `evidencia` | FileField | No | Archivo de evidencia |
+| `observaciones` | TextField | No | Notas adicionales |
+
+**Propiedades calculadas** (read-only en API):
+- `esta_vencido` (bool): Si la fecha de vencimiento pasó y no está completado
+- `dias_restantes` (int|null): Días hasta el vencimiento
+- `proximo_a_vencer` (bool): Si vence en los próximos 15 días
+
+**Señales automáticas**:
+- Si `fecha_vencimiento` pasa y estado ≠ COMPLETADO → estado se marca como `VENCIDO`
+- Si estado cambia a COMPLETADO y no tiene `fecha_implementacion` → se establece automáticamente
+
+---
+
+### 2. Hallazgo
+
+**Descripción**: Hallazgo identificado durante evaluaciones, auditorías o análisis de indicadores.
+
+**Campos Principales**:
+
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|-------------|-------------|
+| `id` | Integer | Sí (PK) | Identificador único |
+| `numero_hallazgo` | CharField(50) | Sí | Identificador único (ej: H-2026-001) |
+| `descripcion` | TextField | Sí | Descripción del hallazgo |
+| `tipo` | CharField(30) | Sí | `FORTALEZA`, `OPORTUNIDAD_MEJORA`, `NO_CONFORMIDAD`, `HALLAZGO` |
+| `severidad` | CharField(10) | Sí | `BAJA`, `MEDIA`, `ALTA`, `CRITICA` |
+| `estado` | CharField(20) | Sí | `ABIERTO`, `EN_SEGUIMIENTO`, `CERRADO` |
+| `origen_tipo` | CharField(20) | Sí | `HABILITACION`, `AUDITORIA`, `INDICADOR` |
+| `autoevaluacion` | ForeignKey | No* | FK (requerido si origen=HABILITACION) |
+| `datos_prestador` | ForeignKey | No | FK a DatosPrestador |
+| `auditoria` | ForeignKey | No* | FK (requerido si origen=AUDITORIA) |
+| `resultado_indicador` | ForeignKey | No* | FK (requerido si origen=INDICADOR) |
+| `criterio` | ForeignKey | No | FK a Criterio |
+| `plan_mejora` | ForeignKey | No | FK a PlanMejora |
+| `area_responsable` | CharField(200) | No | Área responsable |
+| `fecha_identificacion` | DateField | No | Fecha de identificación |
+| `fecha_cierre` | DateField | No | Fecha de cierre (requerido si estado=CERRADO) |
+| `observaciones` | TextField | No | Notas adicionales |
+
+---
+
+## Endpoints de API
+
+### Planes de Mejora
+
+#### CRUD Básico
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/mejoras/planes-mejora/` | Listar planes (paginado) |
+| POST | `/api/mejoras/planes-mejora/` | Crear plan |
+| GET | `/api/mejoras/planes-mejora/{id}/` | Detalle de plan (incluye hallazgos) |
+| PUT | `/api/mejoras/planes-mejora/{id}/` | Actualizar plan completo |
+| PATCH | `/api/mejoras/planes-mejora/{id}/` | Actualizar campos parciales |
+| DELETE | `/api/mejoras/planes-mejora/{id}/` | Eliminar plan |
+
+#### Acciones Especiales
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/mejoras/planes-mejora/vencidos/` | Planes vencidos |
+| GET | `/api/mejoras/planes-mejora/proximos-vencer/?dias=30` | Planes próximos a vencer (default 30 días) |
+| GET | `/api/mejoras/planes-mejora/resumen/` | Resumen estadístico |
+| GET | `/api/mejoras/planes-mejora/por-origen/` | Agrupados por origen_tipo |
+
+#### Filtros Disponibles
+
+| Parámetro | Tipo | Ejemplo |
+|-----------|------|---------|
+| `origen_tipo` | exact | `?origen_tipo=HABILITACION` |
+| `estado` | exact | `?estado=EN_CURSO` |
+| `autoevaluacion` | exact | `?autoevaluacion=9` |
+| `auditoria` | exact | `?auditoria=1` |
+| `criterio` | exact | `?criterio=5` |
+| `responsable` | exact | `?responsable=1` |
+| `search` | text | `?search=calidad` (busca en descripcion, numero_plan, acciones) |
+| `ordering` | field | `?ordering=-fecha_vencimiento` |
+
+---
+
+### Hallazgos
+
+#### CRUD Básico
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/mejoras/hallazgos/` | Listar hallazgos (paginado) |
+| POST | `/api/mejoras/hallazgos/` | Crear hallazgo |
+| GET | `/api/mejoras/hallazgos/{id}/` | Detalle de hallazgo |
+| PUT | `/api/mejoras/hallazgos/{id}/` | Actualizar hallazgo completo |
+| PATCH | `/api/mejoras/hallazgos/{id}/` | Actualizar campos parciales |
+| DELETE | `/api/mejoras/hallazgos/{id}/` | Eliminar hallazgo |
+
+#### Acciones Especiales
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/mejoras/hallazgos/estadisticas/` | Estadísticas por tipo/estado/severidad |
+| GET | `/api/mejoras/hallazgos/por-origen/` | Agrupados por origen_tipo |
+| GET | `/api/mejoras/hallazgos/sin-plan/` | Hallazgos sin plan de mejora asignado |
+
+#### Filtros Disponibles
+
+| Parámetro | Tipo | Ejemplo |
+|-----------|------|---------|
+| `origen_tipo` | exact | `?origen_tipo=AUDITORIA` |
+| `tipo` | exact | `?tipo=NO_CONFORMIDAD` |
+| `severidad` | exact | `?severidad=ALTA` |
+| `estado` | exact | `?estado=ABIERTO` |
+| `plan_mejora` | exact | `?plan_mejora=1` |
+| `autoevaluacion` | exact | `?autoevaluacion=9` |
+| `search` | text | `?search=hallazgo` (busca en descripcion, numero_hallazgo) |
+| `ordering` | field | `?ordering=-severidad` |
+
+---
+
+## Ejemplos de Requests/Responses
+
+### Crear Plan de Mejora
+
+**Request**:
+```http
+POST /api/mejoras/planes-mejora/
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+    "numero_plan": "PM-2026-001",
+    "descripcion": "Mejorar procesos de esterilización",
+    "origen_tipo": "HABILITACION",
+    "autoevaluacion": 9,
+    "acciones_implementar": "Implementar protocolo de esterilización actualizado",
+    "fecha_inicio": "2026-03-01",
+    "fecha_vencimiento": "2026-06-30",
+    "estado": "PENDIENTE",
+    "porcentaje_avance": 0
+}
+```
+
+**Response** (201):
+```json
+{
+    "id": 1,
+    "numero_plan": "PM-2026-001",
+    "descripcion": "Mejorar procesos de esterilización",
+    "origen_tipo": "HABILITACION",
+    "autoevaluacion": 9,
+    "estado": "PENDIENTE",
+    "porcentaje_avance": 0,
+    "fecha_inicio": "2026-03-01",
+    "fecha_vencimiento": "2026-06-30"
+}
+```
+
+### Obtener Resumen
+
+**Request**:
+```http
+GET /api/mejoras/planes-mejora/resumen/
+Authorization: Bearer {token}
+```
+
+**Response** (200):
+```json
+{
+    "total_planes": 3,
+    "pendientes": 1,
+    "en_curso": 1,
+    "completados": 0,
+    "vencidos": 1,
+    "porcentaje_promedio_avance": 16.67
+}
+```
+
+### Crear Hallazgo
+
+**Request**:
+```http
+POST /api/mejoras/hallazgos/
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+    "numero_hallazgo": "H-2026-001",
+    "descripcion": "No se evidencia protocolo de esterilización actualizado",
+    "origen_tipo": "HABILITACION",
+    "autoevaluacion": 9,
+    "tipo": "NO_CONFORMIDAD",
+    "severidad": "ALTA",
+    "estado": "ABIERTO",
+    "plan_mejora": 1,
+    "fecha_identificacion": "2026-02-20"
+}
+```
+
+**Response** (201):
+```json
+{
+    "id": 1,
+    "numero_hallazgo": "H-2026-001",
+    "descripcion": "No se evidencia protocolo de esterilización actualizado",
+    "tipo": "NO_CONFORMIDAD",
+    "severidad": "ALTA",
+    "estado": "ABIERTO",
+    "origen_tipo": "HABILITACION",
+    "plan_mejora": 1,
+    "fecha_identificacion": "2026-02-20"
+}
+```
+
+### Estadísticas de Hallazgos
+
+**Request**:
+```http
+GET /api/mejoras/hallazgos/estadisticas/?origen_tipo=HABILITACION
+Authorization: Bearer {token}
+```
+
+**Response** (200):
+```json
+{
+    "total_hallazgos": 5,
+    "fortalezas": 1,
+    "oportunidades_mejora": 2,
+    "no_conformidades": 2,
+    "hallazgos": 0,
+    "abiertos": 3,
+    "en_seguimiento": 1,
+    "cerrados": 1,
+    "criticos": 1
+}
+```
+
+---
+
+## Estados y Enumeraciones
+
+### PlanMejora.estado
+
+| Valor | Descripción |
+|-------|-------------|
+| `PENDIENTE` | Plan creado, sin iniciar |
+| `EN_CURSO` | Plan en ejecución |
+| `COMPLETADO` | Plan completado (requiere porcentaje=100%) |
+| `VENCIDO` | Plan cuya fecha de vencimiento pasó (automático) |
+
+### PlanMejora.origen_tipo / Hallazgo.origen_tipo
+
+| Valor | Descripción | FK requerida |
+|-------|-------------|--------------|
+| `HABILITACION` | Origen en autoevaluación | `autoevaluacion` |
+| `AUDITORIA` | Origen en auditoría | `auditoria` |
+| `INDICADOR` | Origen en indicadores | `resultado_indicador` |
+
+### Hallazgo.tipo
+
+| Valor | Descripción |
+|-------|-------------|
+| `FORTALEZA` | Aspecto positivo identificado |
+| `OPORTUNIDAD_MEJORA` | Oportunidad de mejora |
+| `NO_CONFORMIDAD` | Incumplimiento de requisito |
+| `HALLAZGO` | Hallazgo general |
+
+### Hallazgo.severidad
+
+| Valor | Descripción |
+|-------|-------------|
+| `BAJA` | Impacto menor |
+| `MEDIA` | Impacto moderado |
+| `ALTA` | Impacto significativo |
+| `CRITICA` | Impacto crítico, requiere acción inmediata |
+
+### Hallazgo.estado
+
+| Valor | Descripción |
+|-------|-------------|
+| `ABIERTO` | Hallazgo identificado, pendiente de acción |
+| `EN_SEGUIMIENTO` | Se están implementando acciones correctivas |
+| `CERRADO` | Hallazgo resuelto (requiere fecha_cierre) |
+
+---
+
+## Validaciones de Negocio
+
+### PlanMejora
+1. `fecha_vencimiento` debe ser posterior a `fecha_inicio`
+2. Si `estado = COMPLETADO`, `porcentaje_avance` debe ser 100%
+3. Si `origen_tipo = HABILITACION`, `autoevaluacion` es obligatorio
+4. Si `origen_tipo = AUDITORIA`, `auditoria` es obligatorio
+5. Si `origen_tipo = INDICADOR`, `resultado_indicador` es obligatorio
+
+### Hallazgo
+1. Si `estado = CERRADO`, `fecha_cierre` es obligatorio
+2. Si `origen_tipo = HABILITACION`, `autoevaluacion` es obligatorio
+3. Si `origen_tipo = AUDITORIA`, `auditoria` es obligatorio
+4. Si `origen_tipo = INDICADOR`, `resultado_indicador` es obligatorio
+
+---
+
+# Módulo de Auditoría
+
+Fecha: 2026-02-20  
+App: `audit`
+
+### Base URL
+```
+http://localhost:8000/api/audit/
+```
+
+### Endpoints
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/audit/auditorias/` | Listar auditorías |
+| POST | `/api/audit/auditorias/` | Crear auditoría |
+| GET | `/api/audit/auditorias/{id}/` | Detalle auditoría |
+| PUT/PATCH | `/api/audit/auditorias/{id}/` | Actualizar auditoría |
+| DELETE | `/api/audit/auditorias/{id}/` | Eliminar auditoría |
+| GET | `/api/audit/entidades/` | Listar entidades auditoras |
+| POST | `/api/audit/entidades/` | Crear entidad auditora |
+| GET | `/api/audit/entidades/{id}/` | Detalle entidad |
+| PUT/PATCH | `/api/audit/entidades/{id}/` | Actualizar entidad |
+| DELETE | `/api/audit/entidades/{id}/` | Eliminar entidad |
+| GET | `/api/audit/tipos/` | Listar tipos de auditoría |
+| POST | `/api/audit/tipos/` | Crear tipo de auditoría |
+| GET | `/api/audit/tipos/{id}/` | Detalle tipo |
+| PUT/PATCH | `/api/audit/tipos/{id}/` | Actualizar tipo |
+| DELETE | `/api/audit/tipos/{id}/` | Eliminar tipo |
 
