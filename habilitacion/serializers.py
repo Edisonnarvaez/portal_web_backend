@@ -63,6 +63,7 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
         write_only=True
     )
     company_detail = serializers.SerializerMethodField()
+    headquarters_detail = serializers.SerializerMethodField()
     clase_prestador_display = serializers.CharField(
         source='get_clase_prestador_display',
         read_only=True
@@ -85,6 +86,7 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
             'codigo_reps',
             'headquarters_id',
             'company_detail',
+            'headquarters_detail',
             'clase_prestador',
             'clase_prestador_display',
             'estado_habilitacion',
@@ -107,6 +109,7 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
             'fecha_creacion',
             'fecha_actualizacion',
             'company_detail',
+            'headquarters_detail',
             'dias_vencimiento',
             'proxima_vencer',
             'vencida',
@@ -120,6 +123,15 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
             'id': company.id,
             'name': company.name,
             'nit': getattr(company, 'nit', None),
+        }
+
+    def get_headquarters_detail(self, obj):
+        """Detalle de la sede (headquarters) vinculada al prestador."""
+        hq = obj.headquarters
+        return {
+            'id': hq.id,
+            'name': hq.name,
+            'habilitationCode': hq.habilitationCode,
         }
     
     def get_dias_vencimiento(self, obj):
