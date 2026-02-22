@@ -228,7 +228,7 @@ class ServicioSedeAdmin(admin.ModelAdmin):
     
     list_display = [
         'codigo_servicio_link',
-        'sede_link',
+        'Prestador_link',
         'modalidad_badge',
         'complejidad_badge',
         'estado_habilitacion_badge',
@@ -240,13 +240,13 @@ class ServicioSedeAdmin(admin.ModelAdmin):
         'modalidad',
         'complejidad',
         'estado_habilitacion',
-        'sede__company',
+        'prestador',
     ]
     
     search_fields = [
         'codigo_servicio',
         'nombre_servicio',
-        'sede__name',
+        'Prestador__name',
     ]
     
     readonly_fields = [
@@ -259,7 +259,7 @@ class ServicioSedeAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Identificación', {
             'fields': (
-                'sede',
+                'Prestador',
                 'codigo_servicio',
                 'nombre_servicio',
                 'descripcion',
@@ -298,11 +298,11 @@ class ServicioSedeAdmin(admin.ModelAdmin):
         )
     codigo_servicio_link.short_description = 'Código'
     
-    def sede_link(self, obj):
-        """Link a la sede."""
-        url = reverse('admin:companies_headquarters_change', args=[obj.sede.pk])
-        return format_html('<a href="{}">{}</a>', url, obj.sede.name)
-    sede_link.short_description = 'Sede'
+    def Prestador_link(self, obj):
+        """Link al prestador."""
+        url = reverse('admin:habilitacion_datosprestador_change', args=[obj.Prestador.pk])
+        return format_html('<a href="{}">{}</a>', url, obj.Prestador)
+    Prestador_link.short_description = 'Prestador'
     
     def modalidad_badge(self, obj):
         """Badge de modalidad."""
@@ -359,7 +359,7 @@ class ServicioSedeAdmin(admin.ModelAdmin):
         count = obj.cumplimientos.count()
         url = reverse('admin:habilitacion_cumplimiento_changelist')
         return format_html(
-            '<a href="{}?servicio_sede__id__exact={}">{} evaluaciones</a>',
+            '<a href="{}?servicio_Prestador__id__exact={}">{} evaluaciones</a>',
             url,
             obj.pk,
             count

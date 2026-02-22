@@ -184,11 +184,11 @@ class ServicioSede(models.Model):
         ('CANCELADO', 'Cancelado'),
     ]
     
-    sede = models.ForeignKey(
-        Headquarters,
+    prestador = models.ForeignKey(
+        DatosPrestador,
         on_delete=models.PROTECT,
         related_name='servicios_salud',
-        verbose_name="Sede"
+        verbose_name="Prestador",
     )
     
     # Identificación del servicio
@@ -249,11 +249,11 @@ class ServicioSede(models.Model):
     
     class Meta:
         db_table = "habilitacion_serviciosede"
-        verbose_name = "Servicio de Sede"
-        verbose_name_plural = "Servicios de Sedes"
-        unique_together = ('sede', 'codigo_servicio')
+        verbose_name = "Servicio de Prestador"
+        verbose_name_plural = "Servicios de Prestador"
+        unique_together = ('prestador', 'codigo_servicio')
         indexes = [
-            models.Index(fields=['sede', 'estado_habilitacion']),
+            models.Index(fields=['prestador', 'estado_habilitacion']),
             models.Index(fields=['estado_habilitacion']),
         ]
     
@@ -430,7 +430,7 @@ class Cumplimiento(models.Model):
         related_name='cumplimientos',
         verbose_name="Autoevaluación"
     )
-    servicio_sede = models.ForeignKey(
+    servicio_prestador = models.ForeignKey(
         ServicioSede,
         on_delete=models.PROTECT,
         related_name='cumplimientos',
@@ -497,7 +497,7 @@ class Cumplimiento(models.Model):
         db_table = "habilitacion_cumplimiento"
         verbose_name = "Cumplimiento"
         verbose_name_plural = "Cumplimientos"
-        unique_together = ('autoevaluacion', 'servicio_sede', 'criterio')
+        unique_together = ('autoevaluacion', 'servicio_prestador', 'criterio')
         indexes = [
             models.Index(fields=['autoevaluacion', 'cumple']),
             models.Index(fields=['criterio']),
