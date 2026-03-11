@@ -228,7 +228,7 @@ class ServicioSedeAdmin(admin.ModelAdmin):
     
     list_display = [
         'codigo_servicio_link',
-        'Prestador_link',
+        'prestador_link',
         'modalidad_badge',
         'complejidad_badge',
         'estado_habilitacion_badge',
@@ -246,7 +246,7 @@ class ServicioSedeAdmin(admin.ModelAdmin):
     search_fields = [
         'codigo_servicio',
         'nombre_servicio',
-        'Prestador__name',
+        'prestador__codigo_reps',
     ]
     
     readonly_fields = [
@@ -259,7 +259,7 @@ class ServicioSedeAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Identificación', {
             'fields': (
-                'Prestador',
+                'prestador',
                 'codigo_servicio',
                 'nombre_servicio',
                 'descripcion',
@@ -298,11 +298,11 @@ class ServicioSedeAdmin(admin.ModelAdmin):
         )
     codigo_servicio_link.short_description = 'Código'
     
-    def Prestador_link(self, obj):
+    def prestador_link(self, obj):
         """Link al prestador."""
-        url = reverse('admin:habilitacion_datosprestador_change', args=[obj.Prestador.pk])
-        return format_html('<a href="{}">{}</a>', url, obj.Prestador)
-    Prestador_link.short_description = 'Prestador'
+        url = reverse('admin:habilitacion_datosprestador_change', args=[obj.prestador.pk])
+        return format_html('<a href="{}">{}</a>', url, obj.prestador)
+    prestador_link.short_description = 'Prestador'
     
     def modalidad_badge(self, obj):
         """Badge de modalidad."""

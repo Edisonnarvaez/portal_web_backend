@@ -158,8 +158,12 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
 class ServicioSedeListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listados de ServicioSede."""
     
-    sede_nombre = serializers.CharField(
-        source='sede.name',
+    prestador_codigo = serializers.CharField(
+        source='prestador.codigo_reps',
+        read_only=True
+    )
+    prestador_headquarters = serializers.CharField(
+        source='prestador.headquarters.name',
         read_only=True
     )
     modalidad_display = serializers.CharField(
@@ -182,7 +186,8 @@ class ServicioSedeListSerializer(serializers.ModelSerializer):
             'id',
             'codigo_servicio',
             'nombre_servicio',
-            'sede_nombre',
+            'prestador_codigo',
+            'prestador_headquarters',
             'modalidad',
             'modalidad_display',
             'complejidad',
@@ -201,12 +206,12 @@ class ServicioSedeListSerializer(serializers.ModelSerializer):
 class ServicioSedeDetailSerializer(serializers.ModelSerializer):
     """Serializer detallado para ServicioSede."""
     
-    sede_id = serializers.PrimaryKeyRelatedField(
-        queryset=Headquarters.objects.all(),
-        source='sede',
+    prestador_id = serializers.PrimaryKeyRelatedField(
+        queryset=DatosPrestador.objects.all(),
+        source='prestador',
         write_only=True
     )
-    sede_detail = serializers.SerializerMethodField()
+    prestador_detail = serializers.SerializerMethodField()
     modalidad_display = serializers.CharField(
         source='get_modalidad_display',
         read_only=True
@@ -229,8 +234,8 @@ class ServicioSedeDetailSerializer(serializers.ModelSerializer):
             'codigo_servicio',
             'nombre_servicio',
             'descripcion',
-            'sede_id',
-            'sede_detail',
+            'prestador_id',
+            'prestador_detail',
             'modalidad',
             'modalidad_display',
             'complejidad',
@@ -248,16 +253,17 @@ class ServicioSedeDetailSerializer(serializers.ModelSerializer):
             'id',
             'fecha_creacion',
             'fecha_actualizacion',
-            'sede_detail',
+            'prestador_detail',
             'vencido',
             'dias_vencimiento',
         ]
     
-    def get_sede_detail(self, obj):
+    def get_prestador_detail(self, obj):
         return {
-            'id': obj.sede.id,
-            'name': obj.sede.name,
-            'address': obj.sede.address,
+            'id': obj.prestador.id,
+            'codigo_reps': obj.prestador.codigo_reps,
+            'headquarters': obj.prestador.headquarters.name,
+            'estado_habilitacion': obj.prestador.get_estado_habilitacion_display(),
         }
     
     def get_vencido(self, obj):

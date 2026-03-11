@@ -116,7 +116,7 @@ class DatosPrestadorViewSet(viewsets.ModelViewSet):
         """Servicios habilitados de un prestador (por sede)."""
         prestador = self.get_object()
         servicios = ServicioSede.objects.filter(
-            sede__company=prestador.headquarters.company
+            prestador=prestador
         )
         
         serializer = ServicioSedeListSerializer(servicios, many=True)
@@ -168,7 +168,7 @@ class ServicioSedeViewSet(viewsets.ModelViewSet):
     - GET /api/habilitacion/servicios/{id}/cumplimientos/ → Cumplimientos del servicio
     """
     
-    queryset = ServicioSede.objects.select_related('sede', 'sede__company')
+    queryset = ServicioSede.objects.select_related('prestador', 'prestador__headquarters', 'prestador__headquarters__company')
     permission_classes = [IsAuthenticated]
     filter_backends = [
         DjangoFilterBackend,
@@ -176,7 +176,7 @@ class ServicioSedeViewSet(viewsets.ModelViewSet):
         filters.OrderingFilter,
     ]
     filterset_fields = [
-        'sede',
+        'prestador',
         'modalidad',
         'complejidad',
         'estado_habilitacion',
@@ -184,7 +184,7 @@ class ServicioSedeViewSet(viewsets.ModelViewSet):
     search_fields = [
         'codigo_servicio',
         'nombre_servicio',
-        'sede__name',
+        'prestador__codigo_reps',
     ]
     ordering_fields = [
         'fecha_vencimiento',
