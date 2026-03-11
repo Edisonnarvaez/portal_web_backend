@@ -80,6 +80,8 @@ class DatosPrestadorAdmin(admin.ModelAdmin):
     
     list_display = [
         'codigo_reps_link',
+        'nombre_prestador',
+        'sede_principal',
         'headquarters_link',
         'clase_prestador_badge',
         'estado_habilitacion_badge',
@@ -112,6 +114,8 @@ class DatosPrestadorAdmin(admin.ModelAdmin):
             'fields': (
                 'headquarters',
                 'codigo_reps',
+                'nombre_prestador',
+                'sede_principal',
                 'clase_prestador',
             )
         }),

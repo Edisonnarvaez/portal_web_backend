@@ -57,6 +57,16 @@ class DatosPrestador(models.Model):
         verbose_name="Código REPS",
         help_text="Código de registro en REPS de la Superintendencia de Salud"
     )
+    nombre_prestador = models.CharField(
+        max_length=255,
+        verbose_name="Nombre del Prestador",
+        help_text="Nombre del prestador de servicios de salud"
+    )
+    sede_principal = models.BooleanField(
+        default=False,
+        verbose_name="Es Sede Principal",
+        help_text="Indica si esta es la sede principal del prestador"
+    )
     clase_prestador = models.CharField(
         max_length=10,
         choices=CLASE_PRESTADOR_CHOICES,

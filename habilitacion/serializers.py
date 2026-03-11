@@ -87,6 +87,8 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
             'headquarters_id',
             'company_detail',
             'headquarters_detail',
+            'nombre_prestador',
+            'sede_principal',
             'clase_prestador',
             'clase_prestador_display',
             'estado_habilitacion',
