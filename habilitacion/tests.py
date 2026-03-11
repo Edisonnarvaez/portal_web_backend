@@ -28,8 +28,13 @@ class DatosPrestadorModelTests(TestCase):
             nit='123456789',
             foundationDate='2020-01-15'
         )
-        self.prestador = DatosPrestador.objects.create(
+        self.headquarters = Headquarters.objects.create(
             company=self.company,
+            name='Sede Centro',
+            address='Cra 1 # 1-1'
+        )
+        self.prestador = DatosPrestador.objects.create(
+            headquarters=self.headquarters,
             codigo_reps='110001234567',
             clase_prestador='IPS',
             estado_habilitacion='EN_PROCESO',
@@ -55,7 +60,7 @@ class DatosPrestadorModelTests(TestCase):
     def test_esta_vencida(self):
         """Verificar si está vencida"""
         prestador_vencido = DatosPrestador.objects.create(
-            company=self.company,
+            headquarters=self.headquarters,
             codigo_reps='110001234568',
             fecha_vencimiento_habilitacion=timezone.now().date() - timedelta(days=10)
         )
@@ -63,13 +68,20 @@ class DatosPrestadorModelTests(TestCase):
     
     def test_prestador_string_representation(self):
         """Verificar representación en string"""
-        expected = f"{self.prestador.codigo_reps} - {self.company.name}"
+        expected = f"{self.prestador.codigo_reps} - {self.headquarters.name}"
         self.assertEqual(str(self.prestador), expected)
     
-    def test_prestador_one_to_one_with_company(self):
-        """Verificar relación OneToOne con Company"""
-        retrieved = DatosPrestador.objects.get(company=self.company)
-        self.assertEqual(retrieved.id, self.prestador.id)
+    def test_prestador_multiple_per_headquarters(self):
+        """Verificar que múltiples prestadores pueden existir en una sede"""
+        # Crear segundo prestador en la misma sede
+        prestador2 = DatosPrestador.objects.create(
+            headquarters=self.headquarters,
+            codigo_reps='110001234568',
+            clase_prestador='PROF'
+        )
+        # Ambos deben existir
+        retrieved = DatosPrestador.objects.filter(headquarters=self.headquarters).count()
+        self.assertEqual(retrieved, 2)
 
 
 class ServicioSedeModelTests(TestCase):
@@ -82,8 +94,13 @@ class ServicioSedeModelTests(TestCase):
             company=self.company,
             address='Cra 1 # 1-1'
         )
+        self.prestador = DatosPrestador.objects.create(
+            headquarters=self.sede,
+            codigo_reps='110001234567',
+            clase_prestador='IPS'
+        )
         self.servicio = ServicioSede.objects.create(
-            sede=self.sede,
+            prestador=self.prestador,
             codigo_servicio='SVC-001',
             nombre_servicio='Urgencias',
             modalidad='URGENCIAS',
@@ -102,11 +119,11 @@ class ServicioSedeModelTests(TestCase):
         self.assertIsNotNone(dias)
         self.assertGreater(dias, 190)
     
-    def test_servicio_unique_with_sede(self):
-        """Verificar que código + sede es único"""
+    def test_servicio_unique_with_prestador(self):
+        """Verificar que código + prestador es único"""
         with self.assertRaises(Exception):
             ServicioSede.objects.create(
-                sede=self.sede,
+                prestador=self.prestador,
                 codigo_servicio='SVC-001',
                 nombre_servicio='Otro servicio'
             )
@@ -130,8 +147,13 @@ class AutoevaluacionModelTests(TestCase):
             nit='222222222',
             foundationDate='2020-01-15'
         )
-        self.prestador = DatosPrestador.objects.create(
+        self.headquarters = Headquarters.objects.create(
             company=self.company,
+            name='Sede Test',
+            address='Cra 1'
+        )
+        self.prestador = DatosPrestador.objects.create(
+            headquarters=self.headquarters,
             codigo_reps='110001234567'
         )
         self.autoevaluacion = Autoevaluacion.objects.create(
@@ -190,7 +212,7 @@ class CumplimientoModelTests(TestCase):
         )
         
         self.prestador = DatosPrestador.objects.create(
-            company=self.company,
+            headquarters=self.sede,
             codigo_reps='110001234567'
         )
         self.autoevaluacion = Autoevaluacion.objects.create(
@@ -201,7 +223,7 @@ class CumplimientoModelTests(TestCase):
             usuario_responsable=self.user
         )
         self.servicio = ServicioSede.objects.create(
-            sede=self.sede,
+            prestador=self.prestador,
             codigo_servicio='SVC-001',
             nombre_servicio='Urgencias',
             modalidad='URGENCIAS',
@@ -274,8 +296,13 @@ class DatosPrestadorAPITests(APITestCase):
             nit='444444444',
             foundationDate='2020-01-15'
         )
-        self.prestador = DatosPrestador.objects.create(
+        self.headquarters = Headquarters.objects.create(
             company=self.company,
+            name='Sede Test',
+            address='Cra 1'
+        )
+        self.prestador = DatosPrestador.objects.create(
+            headquarters=self.headquarters,
             codigo_reps='110001234567',
             clase_prestador='IPS'
         )
@@ -289,7 +316,7 @@ class DatosPrestadorAPITests(APITestCase):
     def test_create_prestador(self):
         """Verificar creación de prestador"""
         data = {
-            'company_id': self.company.id,
+            'headquarters_id': self.headquarters.id,
             'codigo_reps': '110001234568',
             'clase_prestador': 'PROF'
         }
@@ -306,7 +333,7 @@ class DatosPrestadorAPITests(APITestCase):
         """Verificar acción proximos_a_vencer"""
         # Crear prestador próximo a vencer
         prestador_vencer = DatosPrestador.objects.create(
-            company=self.company,
+            headquarters=self.headquarters,
             codigo_reps='110001234569',
             fecha_vencimiento_habilitacion=timezone.now().date() + timedelta(days=60),
             estado_habilitacion='HABILITADA'
@@ -338,8 +365,13 @@ class AutoevaluacionAPITests(APITestCase):
             nit='333333333',
             foundationDate='2020-01-15'
         )
-        self.prestador = DatosPrestador.objects.create(
+        self.headquarters = Headquarters.objects.create(
             company=self.company,
+            name='Sede Test',
+            address='Cra 1'
+        )
+        self.prestador = DatosPrestador.objects.create(
+            headquarters=self.headquarters,
             codigo_reps='110001234567'
         )
         self.autoevaluacion = Autoevaluacion.objects.create(
@@ -413,7 +445,7 @@ class CumplimientoAPITests(APITestCase):
         )
         
         self.prestador = DatosPrestador.objects.create(
-            company=self.company,
+            headquarters=self.sede,
             codigo_reps='110001234567'
         )
         self.autoevaluacion = Autoevaluacion.objects.create(
@@ -424,7 +456,7 @@ class CumplimientoAPITests(APITestCase):
             usuario_responsable=self.user
         )
         self.servicio = ServicioSede.objects.create(
-            sede=self.sede,
+            prestador=self.prestador,
             codigo_servicio='SVC-001',
             nombre_servicio='Urgencias',
             modalidad='URGENCIAS',
@@ -530,13 +562,18 @@ class IntegrationTests(APITestCase):
             nit='987654321',
             foundationDate='2020-01-15'
         )
+        self.headquarters = Headquarters.objects.create(
+            company=self.company,
+            name='Sede Integración',
+            address='Cra 1'
+        )
     
     def test_complete_habilitacion_flow(self):
         """Test del flujo completo: crear prestador → servicio → autoevaluación → cumplimientos"""
         
         # 1. Crear prestador
         data_prestador = {
-            'company_id': self.company.id,
+            'headquarters_id': self.headquarters.id,
             'codigo_reps': '110001234567',
             'clase_prestador': 'IPS'
         }

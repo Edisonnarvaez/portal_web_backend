@@ -359,7 +359,7 @@ class ServicioSedeAdmin(admin.ModelAdmin):
         count = obj.cumplimientos.count()
         url = reverse('admin:habilitacion_cumplimiento_changelist')
         return format_html(
-            '<a href="{}?servicio_Prestador__id__exact={}">{} evaluaciones</a>',
+            '<a href="{}?servicio_sede__id__exact={}">{} evaluaciones</a>',
             url,
             obj.pk,
             count

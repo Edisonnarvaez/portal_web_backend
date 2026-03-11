@@ -83,7 +83,7 @@ class Command(BaseCommand):
         for codigo, nombre, descripcion in servicios_lista:
             try:
                 servicio = ServicioSede.objects.create(
-                    sede=headquarters,
+                    prestador=datos_prestador,
                     codigo_servicio=codigo,
                     nombre_servicio=nombre,
                     descripcion=descripcion,
@@ -95,7 +95,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  ✅ Servicio: {servicio.nombre_servicio}")
             except Exception as e:
                 try:
-                    servicio = ServicioSede.objects.get(codigo_servicio=codigo, sede=headquarters)
+                    servicio = ServicioSede.objects.get(codigo_servicio=codigo, prestador=datos_prestador)
                     servicios_creados.append(servicio)
                     self.stdout.write(f"  ⚠️  Servicio ya existe: {servicio.nombre_servicio}")
                 except:
