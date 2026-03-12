@@ -264,6 +264,7 @@ class ServicioSedeDetailSerializer(serializers.ModelSerializer):
         return {
             'id': obj.prestador.id,
             'codigo_reps': obj.prestador.codigo_reps,
+            'nombre_prestador': obj.prestador.nombre_prestador,
             'headquarters': obj.prestador.headquarters.name,
             'estado_habilitacion': obj.prestador.get_estado_habilitacion_display(),
         }
@@ -377,6 +378,7 @@ class AutoevaluacionDetailSerializer(serializers.ModelSerializer):
     def get_datos_prestador_detail(self, obj):
         return {
             'id': obj.datos_prestador.id,
+            'nombre_prestador': obj.datos_prestador.nombre_prestador,
             'codigo_reps': obj.datos_prestador.codigo_reps,
             'company_name': obj.datos_prestador.headquarters.company.name,
         }
