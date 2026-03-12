@@ -468,6 +468,9 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
             'criterio_codigo',
             'criterio_nombre',
             'servicio_nombre',
+            "autoevaluacion_id",  
+            "servicio_sede_id",
+            "criterio_id",
             'cumple',
             'cumple_display',
             'tiene_plan_mejora',
@@ -653,12 +656,25 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
         """
         Retorna los servicios disponibles para la autoevaluación.
         Útil para que el frontend sepa qué servicios puede seleccionar.
+        Robustez: Soporta tanto updates (obj existe) como context del request.
         """
-        if not obj.autoevaluacion:
+        # Opción 1: Si el objeto existe, usar sus datos
+        if obj and obj.autoevaluacion:
+            prestador = obj.autoevaluacion.datos_prestador
+        # Opción 2: Desde el contexto (durante POST/PUT)
+        elif 'autoevaluacion_id' in self.initial_data:
+            try:
+                autoevaluacion_id = self.initial_data.get('autoevaluacion_id')
+                autoevaluacion = Autoevaluacion.objects.get(pk=autoevaluacion_id)
+                prestador = autoevaluacion.datos_prestador
+            except (Autoevaluacion.DoesNotExist, ValueError):
+                return []
+        else:
             return []
         
-        prestador = obj.autoevaluacion.datos_prestador
-        servicios = ServicioSede.objects.filter(prestador=prestador)
+        servicios = ServicioSede.objects.filter(
+            prestador=prestador
+        ).select_related('prestador')
         
         return [
             {
@@ -667,6 +683,7 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
                 'nombre': s.nombre_servicio,
                 'modalidad': s.get_modalidad_display(),
                 'complejidad': s.get_complejidad_display(),
+                'estado': s.get_estado_habilitacion_display(),
             }
             for s in servicios
         ]
@@ -675,25 +692,41 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
         """
         Validar que el servicio pertenezca al prestador de la autoevaluación.
         Se ejecuta cuando se actualiza/crea un cumplimiento.
+        Con mensajes de error descriptivos.
         """
         # Solo validar si estamos en create/update
         if self.instance is None or self.partial:
             # Obtener la autoevaluación del contexto
-            autoevaluacion = self.initial_data.get('autoevaluacion_id')
+            autoevaluacion_id = self.initial_data.get('autoevaluacion_id')
             
-            if autoevaluacion:
+            if autoevaluacion_id:
                 try:
-                    autoevaluacion_obj = Autoevaluacion.objects.get(pk=autoevaluacion)
+                    autoevaluacion_obj = Autoevaluacion.objects.get(pk=autoevaluacion_id)
                     prestador = autoevaluacion_obj.datos_prestador
                     
                     # Verificar que el servicio pertenezca a este prestador
                     if value.prestador != prestador:
-                        raise serializers.ValidationError(
+                        # Obtener servicios disponibles para sugerir
+                        servicios_disponibles = ServicioSede.objects.filter(
+                            prestador=prestador
+                        ).values_list('nombre_servicio', flat=True)
+                        
+                        msg = (
                             f"El servicio '{value.nombre_servicio}' pertenece al prestador "
                             f"'{value.prestador.nombre_prestador}', pero la autoevaluación "
                             f"es del prestador '{prestador.nombre_prestador}'. "
-                            f"Seleccione un servicio del prestador correcto."
                         )
+                        
+                        if servicios_disponibles:
+                            msg += f"Servicios disponibles: {', '.join(servicios_disponibles)}"
+                        else:
+                            msg += (
+                                f"⚠️ No hay servicios registrados para '{prestador.nombre_prestador}'. "
+                                f"Registre servicios antes de crear cumplimientos."
+                            )
+                        
+                        raise serializers.ValidationError(msg)
+                        
                 except Autoevaluacion.DoesNotExist:
                     raise serializers.ValidationError(
                         "La autoevaluación especificada no existe."
