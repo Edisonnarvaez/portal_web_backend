@@ -569,7 +569,13 @@ class AutoevaluacionAdmin(admin.ModelAdmin):
 class CumplimientoAdmin(admin.ModelAdmin):
     """Administración de cumplimientos de criterios."""
     
+    class Media:
+        js = (
+            'habilitacion/js/cumplimiento_admin.js',
+        )
+    
     list_display = [
+        'id',
         'criterio_codigo_link',
         'autoevaluacion_numero',
         'servicio_nombre',
@@ -739,3 +745,64 @@ class CumplimientoAdmin(admin.ModelAdmin):
         dias_falta = (obj.fecha_compromiso - timezone.now().date()).days
         return f'Pendiente ({dias_falta} días)'
     mejora_estado_display.short_description = 'Estado de Mejora'
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """
+        Filtrado inicial de campos relacionados (servidor).
+        
+        NOTA: El filtrado DINÁMICO se maneja con JavaScript (cumplimiento_admin.js)
+        cuando el usuario interactúa con el formulario en el navegador.
+        
+        Este método solo proporciona pre-filtrado al cargar la página:
+        - En EDIT: Muestra solo servicios del prestador actual
+        - En ADD con parámetros GET: Filtra si viene autoevaluacion_id en URL
+        """
+        if db_field.name == 'servicio_sede':
+            # Obtener la autoevaluación seleccionada
+            prestador = None
+            
+            # Modo EDIT: obtener del cumplimiento existente
+            if request.resolver_match.kwargs:
+                cumplimiento_id = request.resolver_match.kwargs.get('object_id')
+                if cumplimiento_id:
+                    try:
+                        cumplimiento = Cumplimiento.objects.get(pk=cumplimiento_id)
+                        prestador = cumplimiento.autoevaluacion.datos_prestador
+                    except Cumplimiento.DoesNotExist:
+                        pass
+            
+            # Modo ADD: obtener de parámetros GET
+            if not prestador:
+                autoevaluacion_id = request.GET.get('autoevaluacion')
+                if autoevaluacion_id:
+                    try:
+                        autoevaluacion = Autoevaluacion.objects.get(pk=autoevaluacion_id)
+                        prestador = autoevaluacion.datos_prestador
+                    except Autoevaluacion.DoesNotExist:
+                        pass
+            
+            # Aplicar filtro si se encontró un prestador
+            if prestador:
+                kwargs['queryset'] = ServicioSede.objects.filter(
+                    prestador=prestador
+                ).order_by('codigo_servicio')
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        """
+        Hook para agregar contexto personalizado en el formulario.
+        Inyecta información útil para el usuario.
+        """
+        if extra_context is None:
+            extra_context = {}
+        
+        if object_id is None:  # Add form (nuevo cumplimiento)
+            extra_context['title'] = 'Crear nuevo Cumplimiento'
+            extra_context['help_messages'] = [
+                'Selecciona una Autoevaluación primero.',
+                'El dropdown de Servicios se actualizará automáticamente',
+                'para mostrar solo los servicios del prestador seleccionado.'
+            ]
+        
+        return super().changeform_view(request, object_id, form_url, extra_context)

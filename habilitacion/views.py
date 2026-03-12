@@ -428,6 +428,7 @@ class CumplimientoViewSet(viewsets.ModelViewSet):
     - GET /api/habilitacion/cumplimientos/sin_cumplir/ → No cumplen
     - GET /api/habilitacion/cumplimientos/con_plan_mejora/ → Con plan de mejora
     - GET /api/habilitacion/cumplimientos/mejoras_vencidas/ → Compromisos vencidos
+    - GET /api/habilitacion/cumplimientos/servicios_de_autoevaluacion/ → Servicios filtrados
     """
     
     queryset = Cumplimiento.objects.select_related(
@@ -462,6 +463,77 @@ class CumplimientoViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return CumplimientoListSerializer
         return CumplimientoDetailSerializer
+    
+    def perform_create(self, serializer):
+        """Validación adicional al crear cumplimiento."""
+        # La validación principal está en el serializer
+        # Pero también hacemos una verificación aquí
+        autoevaluacion = serializer.validated_data.get('autoevaluacion')
+        servicio_sede = serializer.validated_data.get('servicio_sede')
+        
+        if autoevaluacion and servicio_sede:
+            if servicio_sede.prestador != autoevaluacion.datos_prestador:
+                raise serializers.ValidationError({
+                    'servicio_sede': [
+                        f"El servicio debe pertenecer al prestador '{autoevaluacion.datos_prestador.nombre_prestador}' "
+                        f"que tiene la autoevaluación seleccionada."
+                    ]
+                })
+        
+        serializer.save()
+    
+    @action(detail=False, methods=['get'])
+    def servicios_de_autoevaluacion(self, request):
+        """
+        Obtiene los servicios disponibles para una autoevaluación específica.
+        
+        Parámetros de query:
+        - autoevaluacion_id: ID de la autoevaluación (requerido)
+        
+        Retorna: Lista de servicios del prestador vinculado a la autoevaluación
+        
+        Ejemplo: GET /api/habilitacion/cumplimientos/servicios_de_autoevaluacion/?autoevaluacion_id=5
+        """
+        autoevaluacion_id = request.query_params.get('autoevaluacion_id')
+        
+        if not autoevaluacion_id:
+            return Response(
+                {
+                    'error': 'Parámetro requerido: autoevaluacion_id',
+                    'ejemplo': '/api/habilitacion/cumplimientos/servicios_de_autoevaluacion/?autoevaluacion_id=5'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            autoevaluacion = Autoevaluacion.objects.get(pk=autoevaluacion_id)
+        except Autoevaluacion.DoesNotExist:
+            return Response(
+                {'error': f'La autoevaluación con ID {autoevaluacion_id} no existe.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Obtener servicios del prestador de la autoevaluación
+        prestador = autoevaluacion.datos_prestador
+        servicios = ServicioSede.objects.filter(prestador=prestador)
+        
+        # Serializar
+        serializer = ServicioSedeListSerializer(servicios, many=True)
+        
+        return Response({
+            'autoevaluacion': {
+                'id': autoevaluacion.id,
+                'numero': autoevaluacion.numero_autoevaluacion,
+                'periodo': autoevaluacion.periodo,
+            },
+            'prestador': {
+                'id': prestador.id,
+                'codigo_reps': prestador.codigo_reps,
+                'nombre': prestador.nombre_prestador,
+            },
+            'servicios': serializer.data,
+            'total_servicios': servicios.count(),
+        })
     
     @action(detail=False, methods=['get'])
     def sin_cumplir(self, request):

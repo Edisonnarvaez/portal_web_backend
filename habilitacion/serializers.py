@@ -516,6 +516,9 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
+    # Servicios disponibles para la autoevaluación seleccionada (lectura)
+    servicios_disponibles = serializers.SerializerMethodField()
+    
     # Details (lectura)
     autoevaluacion_detail = serializers.SerializerMethodField()
     servicio_sede_detail = serializers.SerializerMethodField()
@@ -542,6 +545,7 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             'autoevaluacion_detail',
             'servicio_sede_id',
             'servicio_sede_detail',
+            'servicios_disponibles',
             'criterio_id',
             'criterio_detail',
             'cumple',
@@ -571,6 +575,7 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             'mejora_vencida',
             'planes_mejora_vinculados',
             'hallazgos_vinculados',
+            'servicios_disponibles',
         ]
     
     def get_autoevaluacion_detail(self, obj):
@@ -641,6 +646,58 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
                 for p in planes
             ]
         return []
+
+    def get_servicios_disponibles(self, obj):
+        """
+        Retorna los servicios disponibles para la autoevaluación.
+        Útil para que el frontend sepa qué servicios puede seleccionar.
+        """
+        if not obj.autoevaluacion:
+            return []
+        
+        prestador = obj.autoevaluacion.datos_prestador
+        servicios = ServicioSede.objects.filter(prestador=prestador)
+        
+        return [
+            {
+                'id': s.id,
+                'codigo': s.codigo_servicio,
+                'nombre': s.nombre_servicio,
+                'modalidad': s.get_modalidad_display(),
+                'complejidad': s.get_complejidad_display(),
+            }
+            for s in servicios
+        ]
+    
+    def validate_servicio_sede_id(self, value):
+        """
+        Validar que el servicio pertenezca al prestador de la autoevaluación.
+        Se ejecuta cuando se actualiza/crea un cumplimiento.
+        """
+        # Solo validar si estamos en create/update
+        if self.instance is None or self.partial:
+            # Obtener la autoevaluación del contexto
+            autoevaluacion = self.initial_data.get('autoevaluacion_id')
+            
+            if autoevaluacion:
+                try:
+                    autoevaluacion_obj = Autoevaluacion.objects.get(pk=autoevaluacion)
+                    prestador = autoevaluacion_obj.datos_prestador
+                    
+                    # Verificar que el servicio pertenezca a este prestador
+                    if value.prestador != prestador:
+                        raise serializers.ValidationError(
+                            f"El servicio '{value.nombre_servicio}' pertenece al prestador "
+                            f"'{value.prestador.nombre_prestador}', pero la autoevaluación "
+                            f"es del prestador '{prestador.nombre_prestador}'. "
+                            f"Seleccione un servicio del prestador correcto."
+                        )
+                except Autoevaluacion.DoesNotExist:
+                    raise serializers.ValidationError(
+                        "La autoevaluación especificada no existe."
+                    )
+        
+        return value
 
     def get_hallazgos_vinculados(self, obj):
         """Lista de hallazgos vinculados (app mejoras) por autoevaluacion + criterio."""
