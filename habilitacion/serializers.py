@@ -457,6 +457,12 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
         source='get_cumple_display',
         read_only=True
     )
+    documentos_evidencia = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Documento.objects.filter(estado='VIGENTE'),
+        required=False
+    )
+    documentos_evidencia_list = serializers.SerializerMethodField(read_only=True)
     tiene_plan_mejora = serializers.SerializerMethodField()
     planes_mejora_count = serializers.SerializerMethodField()
     hallazgos_count = serializers.SerializerMethodField()
@@ -473,6 +479,8 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
             "criterio_id",
             'cumple',
             'cumple_display',
+            "documentos_evidencia",      # writable (entrada)
+            "documentos_evidencia_list", # read-only (salida)
             'tiene_plan_mejora',
             'planes_mejora_count',
             'hallazgos_count',
@@ -500,6 +508,19 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
             autoevaluacion=obj.autoevaluacion,
             criterio=obj.criterio
         ).count()
+    
+    def get_documentos_evidencia_list(self, obj):
+        """Lista de documentos de evidencia con detalles."""
+        documentos = obj.documentos_evidencia.all()
+        return [
+            {
+                'id': doc.id,
+                'titulo': doc.nombre_documento,
+                'tipo': doc.tipo_documento,
+                'archivo': str(doc.archivo_oficial) if doc.archivo_oficial else None,
+            }
+            for doc in documentos
+        ]
 
 
 class CumplimientoDetailSerializer(serializers.ModelSerializer):

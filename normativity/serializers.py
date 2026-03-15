@@ -127,3 +127,48 @@ class DocumentoNormativoSerializer(serializers.ModelSerializer):
             'criterios_relacionados',
         ]
         read_only_fields = ['id']
+
+
+class DocumentoNormativoWriteSerializer(serializers.ModelSerializer):
+    """Serializer para crear/actualizar Documentos Normativos con criterios."""
+    
+    criterios_relacionados_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Criterio.objects.all(),
+        many=True,
+        write_only=True,
+        required=False,
+        label="IDs de criterios relacionados"
+    )
+    
+    class Meta:
+        model = DocumentoNormativo
+        fields = [
+            'id',
+            'titulo',
+            'tipo',
+            'numero_referencia',
+            'fecha_publicacion',
+            'url_documento',
+            'descripcion',
+            'criterios_relacionados_ids',
+        ]
+        read_only_fields = ['id']
+    
+    def create(self, validated_data):
+        criterios_ids = validated_data.pop('criterios_relacionados_ids', [])
+        documento = DocumentoNormativo.objects.create(**validated_data)
+        if criterios_ids:
+            documento.criterios_relacionados.set(criterios_ids)
+        return documento
+    
+    def update(self, instance, validated_data):
+        criterios_ids = validated_data.pop('criterios_relacionados_ids', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        if criterios_ids is not None:
+            instance.criterios_relacionados.set(criterios_ids)
+        
+        return instance

@@ -16,21 +16,47 @@ from .serializers import (
     EstandarListSerializer,
     CriterioSerializer,
     DocumentoNormativoSerializer,
+    DocumentoNormativoWriteSerializer,
 )
 
 
-class EstandarViewSet(viewsets.ReadOnlyModelViewSet):
+"""
+View que permite solo lectura sin autenticación.
+"""
+from rest_framework.permissions import BasePermission, SAFE_METHODS
+
+
+class PublicReadOnly(BasePermission):
     """
-    ViewSet para consultar Estándares.
+    Permiso que permite lectura pública (GET) pero requiere autenticación para escritura.
+    """
+    def has_permission(self, request, view):
+        # GET, HEAD, OPTIONS son permitidos para anyone
+        if request.method in SAFE_METHODS:
+            return True
+        # POST, PUT, DELETE requieren autenticación
+        return request.user and request.user.is_authenticated
+
+
+class EstandarViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para CRUD de Estándares.
     
-    Los estándares son datos maestros, por lo que son solo lectura.
+    - GET: Acceso público
+    - POST/PUT/DELETE: Requiere autenticación
     """
     
-    permission_classes = [AllowAny]
-    queryset = Estandar.objects.filter(estado=True).prefetch_related('criterios')
+    permission_classes = [PublicReadOnly]
+    queryset = Estandar.objects.all().prefetch_related('criterios')
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['nombre', 'codigo', 'descripcion']
     filterset_fields = ['codigo', 'estado']
+    
+    def get_queryset(self):
+        """En list, mostrar solo estándares activos. En detail, mostrar todos."""
+        if self.action == 'list':
+            return self.queryset.filter(estado=True)
+        return self.queryset
     
     def get_serializer_class(self):
         """Usar serializer simplificado en list, detallado en retrieve."""
@@ -59,21 +85,31 @@ class EstandarViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
-class CriterioViewSet(viewsets.ReadOnlyModelViewSet):
+
+class CriterioViewSet(viewsets.ModelViewSet):
     """
-    ViewSet para consultar Criterios.
+    ViewSet para CRUD de Criterios.
+    
+    - GET: Acceso público
+    - POST/PUT/DELETE: Requiere autenticación
     
     Los criterios pueden filtrarse por estándar y complejidad.
     """
     
-    permission_classes = [AllowAny]
-    queryset = Criterio.objects.filter(estado=True).select_related('estandar')
+    permission_classes = [PublicReadOnly]
+    queryset = Criterio.objects.all().select_related('estandar')
     serializer_class = CriterioSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     search_fields = ['codigo', 'nombre', 'descripcion']
-    filterset_fields = ['estandar', 'complejidad', 'aplica_todos', 'es_mandatorio']
+    filterset_fields = ['estandar', 'complejidad', 'aplica_todos', 'es_mandatorio', 'estado']
     ordering_fields = ['codigo', 'nombre', 'complejidad']
     ordering = ['codigo']
+    
+    def get_queryset(self):
+        """En list, mostrar solo criterios activos. En detail, mostrar todos."""
+        if self.action == 'list':
+            return self.queryset.filter(estado=True)
+        return self.queryset
     
     @action(detail=False, methods=['get'])
     def por_complejidad(self, request):
@@ -111,21 +147,29 @@ class CriterioViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
-class DocumentoNormativoViewSet(viewsets.ReadOnlyModelViewSet):
+class DocumentoNormativoViewSet(viewsets.ModelViewSet):
     """
-    ViewSet para consultar Documentos Normativos.
+    ViewSet para CRUD de Documentos Normativos.
+    
+    - GET: Acceso público
+    - POST/PUT/DELETE: Requiere autenticación
     
     Proporciona acceso a referencias de leyes, resoluciones, manuales, etc.
     """
     
-    permission_classes = [AllowAny]
+    permission_classes = [PublicReadOnly]
     queryset = DocumentoNormativo.objects.all().prefetch_related('criterios_relacionados')
-    serializer_class = DocumentoNormativoSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     search_fields = ['titulo', 'numero_referencia', 'descripcion']
     filterset_fields = ['tipo']
     ordering_fields = ['fecha_publicacion', 'titulo']
     ordering = ['-fecha_publicacion']
+    
+    def get_serializer_class(self):
+        """Usar diferentes serializers para lectura y escritura."""
+        if self.action in ['create', 'update', 'partial_update']:
+            return DocumentoNormativoWriteSerializer
+        return DocumentoNormativoSerializer
     
     @action(detail=True, methods=['get'])
     def criterios(self, request, pk=None):
