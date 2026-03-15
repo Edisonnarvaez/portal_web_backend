@@ -16,6 +16,7 @@ from processes.models import Documento
 from users.models import User
 
 
+
 class DatosPrestadorListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listados de DatosPrestador."""
     
@@ -541,7 +542,12 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
         source='criterio',
         write_only=True
     )
-    
+    documentos_evidencia = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Documento.objects.filter(estado='VIG', activo=True),
+        required=False
+    )
+        
     # Servicios disponibles para la autoevaluación seleccionada (lectura)
     servicios_disponibles = serializers.SerializerMethodField()
     
@@ -574,6 +580,8 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             'servicios_disponibles',
             'criterio_id',
             'criterio_detail',
+            "documentos_evidencia",      # entrada writable
+            "documentos_evidencia_list", # salida read-only
             'cumple',
             'cumple_display',
             'hallazgo',
@@ -584,7 +592,6 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             'mejora_vencida',
             'planes_mejora_vinculados',
             'hallazgos_vinculados',
-            'documentos_evidencia_list',
             'fecha_creacion',
             'fecha_actualizacion',
         ]
@@ -595,7 +602,6 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             'autoevaluacion_detail',
             'servicio_sede_detail',
             'criterio_detail',
-            'documentos_evidencia_list',
             'responsable_mejora_detail',
             'tiene_plan_mejora',
             'mejora_vencida',
