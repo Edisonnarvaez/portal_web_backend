@@ -1,0 +1,922 @@
+{
+  "info": {
+    "name": "Portal Web Backend - Habilitación API",
+    "description": "Colección de requests para probar la API de habilitación de servicios de salud (Resolución 3100)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "AUTENTICACIÓN",
+      "item": [
+        {
+          "name": "Obtener Token JWT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('access_token', response.access);",
+                  "    pm.environment.set('refresh_token', response.refresh);",
+                  "    console.log('Token guardado en environment');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"tu_password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "token"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Refrescar Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/refresh/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "token",
+                "refresh"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NORMATIVITY - Estándares (Lectura)",
+      "item": [
+        {
+          "name": "Listar todos los estándares",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/normativity/estandares/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "normativity",
+                "estandares"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detalle de un estándar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/normativity/estandares/1/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "normativity",
+                "estandares",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criterios del estándar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/normativity/estandares/1/criterios/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "normativity",
+                "estandares",
+                "1",
+                "criterios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar criterios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/normativity/criterios/?complejidad=ALTA",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "normativity",
+                "criterios"
+              ],
+              "query": [
+                {
+                  "key": "complejidad",
+                  "value": "ALTA"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criterios mandatorios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/normativity/criterios/mandatorios/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "normativity",
+                "criterios",
+                "mandatorios"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "HABILITACIÓN - Prestadores",
+      "item": [
+        {
+          "name": "Listar prestadores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/prestadores/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "prestadores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear prestador",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set('company_id', 1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": {{company_id}},\n  \"codigo_reps\": \"REPS-2025-001\",\n  \"clase_prestador\": \"IPS\",\n  \"estado_habilitacion\": \"EN_PROCESO\",\n  \"fecha_inscripcion\": \"2024-01-15\",\n  \"aseguradora_pep\": \"AXA Seguros\",\n  \"numero_poliza\": \"POL-2024-12345\",\n  \"vigencia_poliza\": \"2025-12-31\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/prestadores/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "prestadores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detalle de prestador",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/prestadores/1/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "prestadores",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Prestadores próximos a vencer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/prestadores/proximos_a_vencer/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "prestadores",
+                "proximos_a_vencer"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Prestadores vencidos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/prestadores/vencidas/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "prestadores",
+                "vencidas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Servicios del prestador",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/prestadores/1/servicios/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "prestadores",
+                "1",
+                "servicios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar prestador",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_habilitacion\": \"HABILITADA\",\n  \"fecha_renovacion\": \"2024-12-15\",\n  \"fecha_vencimiento_habilitacion\": \"2025-12-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/prestadores/1/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "prestadores",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "HABILITACIÓN - Servicios",
+      "item": [
+        {
+          "name": "Listar servicios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/servicios/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "servicios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sede_id\": 1,\n  \"codigo_servicio\": \"SRV-001\",\n  \"nombre_servicio\": \"Consulta Externa Medicina General\",\n  \"descripcion\": \"Servicio de consulta externa para medicina general\",\n  \"modalidad\": \"AMBULATORIA\",\n  \"complejidad\": \"MEDIA\",\n  \"estado_habilitacion\": \"EN_PROCESO\",\n  \"fecha_habilitacion\": \"2024-01-15\",\n  \"fecha_vencimiento\": \"2025-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/servicios/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "servicios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Servicios próximos a vencer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/servicios/proximos_a_vencer/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "servicios",
+                "proximos_a_vencer"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Servicios por complejidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/servicios/por_complejidad/?complejidad=ALTA",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "servicios",
+                "por_complejidad"
+              ],
+              "query": [
+                {
+                  "key": "complejidad",
+                  "value": "ALTA"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "HABILITACIÓN - Autoevaluaciones",
+      "item": [
+        {
+          "name": "Listar autoevaluaciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/autoevaluaciones/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "autoevaluaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear autoevaluación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datos_prestador_id\": 1,\n  \"periodo\": 2025,\n  \"fecha_vencimiento\": \"2025-12-31\",\n  \"estado\": \"BORRADOR\",\n  \"observaciones\": \"Autoevaluación del año 2025\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/autoevaluaciones/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "autoevaluaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Autoevaluaciones pendientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/autoevaluaciones/por_completar/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "autoevaluaciones",
+                "por_completar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resumen de autoevaluación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/autoevaluaciones/1/resumen/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "autoevaluaciones",
+                "1",
+                "resumen"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validar autoevaluación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/autoevaluaciones/1/validar/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "autoevaluaciones",
+                "1",
+                "validar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Duplicar autoevaluación (nueva versión)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/autoevaluaciones/1/duplicar/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "autoevaluaciones",
+                "1",
+                "duplicar"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "HABILITACIÓN - Cumplimientos",
+      "item": [
+        {
+          "name": "Listar cumplimientos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/cumplimientos/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "cumplimientos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear cumplimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autoevaluacion_id\": 1,\n  \"servicio_sede_id\": 1,\n  \"criterio_id\": 1,\n  \"cumple\": \"CUMPLE\",\n  \"hallazgo\": \"Se evidencia disponibilidad de personal médico especializado\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/cumplimientos/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "cumplimientos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cumplimientos sin cumplir",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/cumplimientos/sin_cumplir/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "cumplimientos",
+                "sin_cumplir"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cumplimientos con plan de mejora",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/cumplimientos/con_plan_mejora/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "cumplimientos",
+                "con_plan_mejora"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mejoras vencidas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/cumplimientos/mejoras_vencidas/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "cumplimientos",
+                "mejoras_vencidas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar cumplimiento con plan de mejora",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cumple\": \"NO_CUMPLE\",\n  \"hallazgo\": \"No se evidencia disponibilidad suficiente de personal\",\n  \"plan_mejora\": \"Contratar 2 médicos especialistas adicionales\",\n  \"fecha_compromiso\": \"2025-03-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/habilitacion/cumplimientos/1/",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "habilitacion",
+                "cumplimientos",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    },
+    {
+      "key": "company_id",
+      "value": "1"
+    }
+  ]
+}

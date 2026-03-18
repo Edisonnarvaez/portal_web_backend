@@ -1,0 +1,94 @@
+============================================================
+  TEST COMPREHENSIVO DE ENDPOINTS
+  Portal Web Backend - v2.0
+============================================================
+Ô£à Login exitoso (token: eyJhbGciOiJIUzI1NiIs...)
+
+ÔòÉÔòÉÔòÉ API ROOT ÔòÉÔòÉÔòÉ
+  Ô£à GET /api/mejoras/ (router): 200
+  Ô£à GET /api/audit/ (router): 200
+
+ÔòÉÔòÉÔòÉ PLANES DE MEJORA ÔòÉÔòÉÔòÉ
+  Ô£à GET /mejoras/planes-mejora/: 200
+  Ô£à POST /mejoras/planes-mejora/ (crear): 201
+  Ô£à GET /mejoras/planes-mejora/{id}/: 200
+  Ô£à PATCH /mejoras/planes-mejora/{id}/: 200
+  Ô£à GET /mejoras/planes-mejora/vencidos/: 200
+  Ô£à GET /mejoras/planes-mejora/proximos-vencer/: 200
+  Ô£à GET /mejoras/planes-mejora/resumen/: 200
+  Ô£à GET /mejoras/planes-mejora/por-origen/: 200
+
+ÔòÉÔòÉÔòÉ SOPORTES DE PLANES ÔòÉÔòÉÔòÉ
+  Ô£à GET /mejoras/planes-mejora/{id}/soportes/ (vac├¡o): 200
+  Ô£à POST /mejoras/planes-mejora/{id}/soportes/ (PDF): 201
+  Ô£à POST /mejoras/planes-mejora/{id}/soportes/ (PNG): 201
+  Ô£à POST /mejoras/planes-mejora/{id}/soportes/ (XLSX): 201
+  Ô£à POST soporte extensi├│n inv├ílida (.exe ÔåÆ 400): 400
+  Ô£à GET /mejoras/planes-mejora/{id}/soportes/ (con datos): 200
+     ÔåÆ Soportes encontrados: 3
+  Ô£à DELETE soporte espec├¡fico: 204
+
+ÔòÉÔòÉÔòÉ HALLAZGOS (MEJORAS) ÔòÉÔòÉÔòÉ
+  Ô£à GET /mejoras/hallazgos/: 200
+  Ô£à POST /mejoras/hallazgos/ (crear): 201
+  Ô£à GET /mejoras/hallazgos/{id}/: 200
+  Ô£à PATCH /mejoras/hallazgos/{id}/: 200
+  Ô£à GET /mejoras/hallazgos/estadisticas/: 200
+  Ô£à GET /mejoras/hallazgos/por-origen/: 200
+  Ô£à GET /mejoras/hallazgos/sin-plan/: 200
+
+ÔòÉÔòÉÔòÉ AUDIT: TIPOS ÔòÉÔòÉÔòÉ
+  Ô£à GET /audit/tipos/: 200
+  Ô£à POST /audit/tipos/ (crear): 201
+
+ÔòÉÔòÉÔòÉ AUDIT: ENTIDADES ÔòÉÔòÉÔòÉ
+  Ô£à GET /audit/entidades/: 200
+  Ô£à POST /audit/entidades/ (crear): 201
+
+ÔòÉÔòÉÔòÉ AUDIT: AUDITOR├ìAS (Ciclo de Vida) ÔòÉÔòÉÔòÉ
+  Ô£à GET /audit/auditorias/: 200
+  Ô£à POST /audit/auditorias/ (crear PROGRAMADA): 201
+     ÔåÆ Auditor├¡a #19, fase: PROGRAMADA
+  Ô£à GET /audit/auditorias/{id}/ (detalle): 200
+  Ô£à POST cambiar-fase (PROGRAMADA ÔåÆ NOTIFICADA): 200
+     ÔåÆ Fase actual: NOTIFICADA
+  Ô£à POST cambiar-fase (NOTIFICADA ÔåÆ EN_EJECUCION): 200
+  Ô£à POST cambiar-fase (EN_EJECUCION ÔåÆ INFORME): 200
+  Ô£à POST cambiar-fase inv├ílida (INFORME ÔåÆ PROGRAMADA ÔåÆ 400): 400
+  Ô£à GET /audit/auditorias/{id}/equipo/: 200
+  Ô£à GET /audit/auditorias/{id}/actas/: 200
+  Ô£à GET /audit/auditorias/resumen/: 200
+  Ô£à GET /audit/auditorias/proximas/: 200
+  Ô£à GET /audit/auditorias/por-fase/: 200
+
+ÔòÉÔòÉÔòÉ AUDIT: HALLAZGOS AUDITOR├ìA ÔòÉÔòÉÔòÉ
+  Ô£à GET /audit/hallazgos/: 200
+  Ô£à POST /audit/hallazgos/ (crear): 201
+  Ô£à GET /audit/hallazgos/{id}/: 200
+  Ô£à GET /audit/hallazgos/vencidos/: 200
+  Ô£à GET /audit/hallazgos/estadisticas/: 200
+
+ÔòÉÔòÉÔòÉ AUDIT: ACTAS ÔòÉÔòÉÔòÉ
+  Ô£à GET /audit/actas/: 200
+
+ÔòÉÔòÉÔòÉ AUDIT: PROGRAMAS ÔòÉÔòÉÔòÉ
+  Ô£à GET /audit/programas/: 200
+  Ô£à POST /audit/programas/ (crear): 201
+
+ÔòÉÔòÉÔòÉ HABILITACI├ôN (integraci├│n con mejoras) ÔòÉÔòÉÔòÉ
+  Ô£à GET /habilitacion/autoevaluaciones/: 200
+  Ô£à GET /habilitacion/autoevaluaciones/{id}/ (con mejoras_resumen): 200
+     ÔåÆ Campos de mejoras presentes: True
+  Ô£à GET /habilitacion/cumplimientos/: 200
+  Ô£à GET /habilitacion/cumplimientos/{id}/ (con planes vinculados): 200
+     ÔåÆ planes_mejora_vinculados: True
+     ÔåÆ hallazgos_vinculados: True
+
+ÔòÉÔòÉÔòÉ CLEANUP ÔòÉÔòÉÔòÉ
+  Ô£à DELETE plan de prueba: 204
+  Ô£à DELETE hallazgo de prueba: 204
+
+============================================================
+  RESULTADOS: Ô£à 54 pasaron | ÔØî 0 fallaron
+  TOTAL: 54 tests
+============================================================

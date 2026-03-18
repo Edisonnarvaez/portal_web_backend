@@ -1,0 +1,828 @@
+{
+  "info": {
+    "_postman_id": "habilitacion-collection-2025",
+    "name": "Portal Habilitación - API Completa",
+    "description": "Colección completa de endpoints para la API de Habilitación de Servicios de Salud\nResolución 3100 de 2019",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Obtener Token JWT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"tu_contraseña_aqui\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/token/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "token", ""]
+            },
+            "description": "Obtiene el token JWT necesario para autenticarse en otros endpoints"
+          },
+          "response": []
+        },
+        {
+          "name": "Refrescar Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"tu_refresh_token_aqui\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/token/refresh/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "token", "refresh", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Normativity - Estándares (Lectura)",
+      "item": [
+        {
+          "name": "Listar todos los Estándares",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/normativity/estandares/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "normativity", "estandares", ""]
+            },
+            "description": "Lista todos los 7 estándares de Resolución 3100"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Detalle de Estándar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/normativity/estandares/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "normativity", "estandares", "1", ""]
+            },
+            "description": "Obtiene detalle completo de un estándar con sus criterios anidados"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Criterios de un Estándar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/normativity/estandares/1/criterios/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "normativity", "estandares", "1", "criterios", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar todos los Criterios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/normativity/criterios/?limit=50",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "normativity", "criterios", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Lista todos los criterios (21 criterios totales)"
+          },
+          "response": []
+        },
+        {
+          "name": "Filtrar Criterios por Complejidad",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/normativity/criterios/por_complejidad/?complejidad=ALTA",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "normativity", "criterios", "por_complejidad", ""],
+              "query": [
+                {
+                  "key": "complejidad",
+                  "value": "ALTA"
+                }
+              ]
+            },
+            "description": "Obtiene solo criterios de alta complejidad"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Criterios Mandatorios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/normativity/criterios/mandatorios/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "normativity", "criterios", "mandatorios", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Criterios que Requieren Evidencia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/normativity/criterios/con_evidencia/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "normativity", "criterios", "con_evidencia", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Habilitacion - Prestadores",
+      "item": [
+        {
+          "name": "Listar Prestadores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/prestadores/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "prestadores", ""]
+            },
+            "description": "Lista todos los prestadores registrados"
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Prestador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_id\": 1,\n  \"codigo_reps\": \"110001234567\",\n  \"clase_prestador\": \"IPS\",\n  \"estado_habilitacion\": \"EN_PROCESO\",\n  \"fecha_inscripcion\": \"2024-01-15\",\n  \"aseguradora_pep\": \"Seguros XYZ S.A.\",\n  \"numero_poliza\": \"POL-2024-001\",\n  \"vigencia_poliza\": \"2025-12-31\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/prestadores/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "prestadores", ""]
+            },
+            "description": "Crea un nuevo prestador de salud"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Detalle de Prestador",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/prestadores/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "prestadores", "1", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Prestador",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_habilitacion\": \"HABILITADA\",\n  \"fecha_vencimiento_habilitacion\": \"2025-12-31\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/prestadores/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "prestadores", "1", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Prestadores Próximos a Vencer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/prestadores/proximos_a_vencer/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "prestadores", "proximos_a_vencer", ""]
+            },
+            "description": "Prestadores con vencimiento en próximos 90 días"
+          },
+          "response": []
+        },
+        {
+          "name": "Prestadores Vencidos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/prestadores/vencidas/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "prestadores", "vencidas", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Servicios del Prestador",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/prestadores/1/servicios/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "prestadores", "1", "servicios", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Autoevaluaciones del Prestador",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/prestadores/1/autoevaluaciones/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "prestadores", "1", "autoevaluaciones", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Iniciar Renovación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/prestadores/1/iniciar_renovacion/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "prestadores", "1", "iniciar_renovacion", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Habilitacion - Servicios de Sede",
+      "item": [
+        {
+          "name": "Listar Servicios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/servicios/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "servicios", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sede_id\": 1,\n  \"codigo_servicio\": \"SVC-001-2024\",\n  \"nombre_servicio\": \"Urgencias 24 horas\",\n  \"descripcion\": \"Servicio de urgencias abierto 24/7\",\n  \"modalidad\": \"URGENCIAS\",\n  \"complejidad\": \"ALTA\",\n  \"estado_habilitacion\": \"EN_PROCESO\",\n  \"fecha_habilitacion\": \"2024-01-15\",\n  \"fecha_vencimiento\": \"2025-01-14\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/servicios/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "servicios", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Servicios Próximos a Vencer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/servicios/proximos_a_vencer/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "servicios", "proximos_a_vencer", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Servicios por Complejidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/servicios/por_complejidad/?complejidad=ALTA",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "servicios", "por_complejidad", ""],
+              "query": [
+                {
+                  "key": "complejidad",
+                  "value": "ALTA"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cumplimientos de un Servicio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/servicios/1/cumplimientos/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "servicios", "1", "cumplimientos", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Habilitacion - Autoevaluaciones",
+      "item": [
+        {
+          "name": "Listar Autoevaluaciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/autoevaluaciones/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "autoevaluaciones", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Autoevaluación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datos_prestador_id\": 1,\n  \"periodo\": 2024,\n  \"version\": 1,\n  \"fecha_vencimiento\": \"2025-12-31\",\n  \"estado\": \"BORRADOR\",\n  \"observaciones\": \"Autoevaluación inicial para el período 2024\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/autoevaluaciones/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "autoevaluaciones", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Detalle de Autoevaluación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/autoevaluaciones/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "autoevaluaciones", "1", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Autoevaluaciones por Completar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/autoevaluaciones/por_completar/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "autoevaluaciones", "por_completar", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resumen de Autoevaluación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/autoevaluaciones/1/resumen/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "autoevaluaciones", "1", "resumen", ""]
+            },
+            "description": "Obtiene estadísticas completas de cumplimiento"
+          },
+          "response": []
+        },
+        {
+          "name": "Validar Autoevaluación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/autoevaluaciones/1/validar/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "autoevaluaciones", "1", "validar", ""]
+            },
+            "description": "Cambiar estado a VALIDADA"
+          },
+          "response": []
+        },
+        {
+          "name": "Duplicar Autoevaluación (Renovación Anual)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/autoevaluaciones/1/duplicar/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "autoevaluaciones", "1", "duplicar", ""]
+            },
+            "description": "Crear nueva versión para el próximo año"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Habilitacion - Cumplimientos",
+      "item": [
+        {
+          "name": "Listar Cumplimientos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/cumplimientos/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "cumplimientos", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Cumplimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autoevaluacion_id\": 1,\n  \"servicio_sede_id\": 1,\n  \"criterio_id\": 1,\n  \"cumple\": \"CUMPLE\",\n  \"hallazgo\": \"Se encontró conformidad en la disponibilidad de personal médico\",\n  \"plan_mejora\": null\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/cumplimientos/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "cumplimientos", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cumplimientos Sin Cumplir",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/cumplimientos/sin_cumplir/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "cumplimientos", "sin_cumplir", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cumplimientos con Plan de Mejora",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/cumplimientos/con_plan_mejora/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "cumplimientos", "con_plan_mejora", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mejoras Vencidas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/cumplimientos/mejoras_vencidas/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "cumplimientos", "mejoras_vencidas", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Cumplimiento con Plan de Mejora",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cumple\": \"NO_CUMPLE\",\n  \"hallazgo\": \"No se encontró certificación de capacitación actualizada\",\n  \"plan_mejora\": \"Implementar programa de capacitación mensual para todo el personal médico\",\n  \"responsable_mejora_id\": 1,\n  \"fecha_compromiso\": \"2025-03-31\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/habilitacion/cumplimientos/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "habilitacion", "cumplimientos", "1", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ]
+}

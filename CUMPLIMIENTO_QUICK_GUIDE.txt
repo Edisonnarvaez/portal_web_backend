@@ -1,0 +1,258 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║        ✅ GUÍA RÁPIDA: CREAR Y VER CUMPLIMIENTOS EN AUTOEVALUACIÓN         ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+TU PROBLEMA: "No me aparece el cumplimiento en la autoevaluación"
+
+✓ SOLUCIÓN: Tienes que CREAR registros de cumplimiento
+
+════════════════════════════════════════════════════════════════════════════════
+
+🚀 OPCIÓN 1: CREAR DATOS DE EJEMPLO EN 2 MINUTOS (Recomendado)
+
+Ejecuta este script:
+
+    python manage.py shell
+    exec(open('habilitacion/sample_data.py', encoding='utf-8').read())
+
+QUÉ HACE:
+  ✓ Crea empresa de ejemplo: "Clínica Integral de Salud"
+  ✓ Crea 3 servicios: Emergencias, Laboratorio, Imagenología
+  ✓ Crea autoevaluación 2024
+  ✓ Crea 63 cumplimientos (21 criterios × 3 servicios)
+  ✓ Asigna resultados aleatorios realistas
+  ✓ Genera planes de mejora para NO_CUMPLE
+
+RESULTADO:
+  ✓ Verás la autoevaluación con 63 cumplimientos
+  ✓ Porcentaje de cumplimiento: ~70-80%
+  ✓ Todos los datos listos para editar
+
+LUEGO ACCEDER A:
+  http://localhost:8000/admin/habilitacion/autoevaluacion/
+  
+  Verás: "AUT-9009876543-2024" con porcentaje 75% 📊
+
+════════════════════════════════════════════════════════════════════════════════
+
+🎯 OPCIÓN 2: CREAR CUMPLIMIENTOS PARA AUTOEVALUACIÓN EXISTENTE
+
+Si ya tienes una autoevaluación creada:
+
+    python manage.py shell
+    exec(open('habilitacion/create_cumplimientos.py', encoding='utf-8').read())
+
+PASOS:
+  1. Te mostrará lista de autoevaluaciones disponibles
+  2. Selecciona una (ej: escribir "1")
+  3. Confirma creación (escribe "s")
+  4. Espera que se creen todos los cumplimientos
+
+RESULTADO:
+  ✓ Cumplimientos creados para esa autoevaluación
+  ✓ Porcentaje se calcula automáticamente
+  ✓ Todos en "CUMPLE" (puedes modificar después)
+
+════════════════════════════════════════════════════════════════════════════════
+
+🔧 OPCIÓN 3: CREAR MANUALMENTE EN ADMIN
+
+1. VE A: http://localhost:8000/admin/habilitacion/cumplimiento/add/
+
+2. LLENA LOS CAMPOS:
+   
+   ┌─────────────────────────────────────┐
+   │ AUTOEVALUACIÓN*                     │
+   │ [Selecciona AUT-5200101213-2024 ▼] │
+   ├─────────────────────────────────────┤
+   │ SERVICIO DE SEDE*                   │
+   │ [Selecciona Emergencias ▼]          │
+   ├─────────────────────────────────────┤
+   │ CRITERIO*                           │
+   │ [Selecciona 1.1 Disponibilidad... ▼]│
+   ├─────────────────────────────────────┤
+   │ RESULTADO*                          │
+   │ [Selecciona CUMPLE ▼]               │
+   ├─────────────────────────────────────┤
+   │ HALLAZGO                            │
+   │ [Escribe observación o dejalo vacío]│
+   ├─────────────────────────────────────┤
+   │ PLAN DE MEJORA                      │
+   │ [Solo si NO_CUMPLE]                 │
+   └─────────────────────────────────────┘
+
+3. CLICK "SAVE" ✓
+
+4. REPITE PARA CADA CUMPLIMIENTO
+   (Criterio × Servicio)
+
+════════════════════════════════════════════════════════════════════════════════
+
+📊 VERIFICAR QUE FUNCIONA
+
+OPCIÓN A: En Admin
+
+1. Ir a: http://localhost:8000/admin/habilitacion/autoevaluacion/
+2. Abrir la autoevaluación
+3. Verás algo así:
+
+   ┌────────────────────────────────────────┐
+   │ Autoevaluación: AUT-5200101213-2024    │
+   │ Estado: EN_CURSO                       │
+   │ Cumplimiento: [████████░░] 80%         │ ← ESTO APARECE
+   │ Resumen: 67 CUMPLE, 8 NO_CUMPLE       │ ← ESTO APARECE
+   └────────────────────────────────────────┘
+
+OPCIÓN B: En Django Shell
+
+Ejecuta:
+
+    python manage.py shell
+    
+    from habilitacion.models import Autoevaluacion
+    
+    auto = Autoevaluacion.objects.get(numero_autoevaluacion="AUT-5200101213-2024")
+    
+    print(f"Cumplimientos: {auto.cumplimientos.count()}")
+    print(f"Porcentaje: {auto.porcentaje_cumplimiento()}%")
+
+SALIDA ESPERADA:
+
+    Cumplimientos: 63
+    Porcentaje: 75.2%
+
+════════════════════════════════════════════════════════════════════════════════
+
+❓ PREGUNTAS FRECUENTES
+
+P1: ¿Cuántos cumplimientos debería tener?
+R: 21 criterios × número de servicios
+   Ej: 21 × 3 servicios = 63 cumplimientos
+
+P2: ¿Por qué el porcentaje es 0%?
+R: Porque NO HAY CUMPLIMIENTOS creados aún
+   Solución: Ejecuta sample_data.py o create_cumplimientos.py
+
+P3: ¿Puedo tener múltiples versiones?
+R: Sí. Cada año o cada revisión es una versión
+   Ej: AUT-5200101213-2024 v1
+       AUT-5200101213-2024 v2
+       AUT-5200101213-2025 v1
+
+P4: ¿Cómo modifico un cumplimiento existente?
+R: http://localhost:8000/admin/habilitacion/cumplimiento/
+   Busca el cumplimiento → Click → Modifica → SAVE
+
+P5: ¿Necesito cumplimientos para TODOS los criterios?
+R: Idealmente sí, pero puedes dejar algunos sin evaluar
+   El porcentaje solo cuenta los evaluados
+
+P6: ¿Qué significa NO_APLICA?
+R: Que el criterio no aplica a ese servicio
+   Ejemplo: Un laboratorio de análisis no necesita "Emergencias"
+
+════════════════════════════════════════════════════════════════════════════════
+
+🎯 FLUJO TÍPICO
+
+1️⃣  CREAR DATOS DE EJEMPLO
+    exec(open('habilitacion/sample_data.py', encoding='utf-8').read())
+    
+2️⃣  IR A ADMIN
+    http://localhost:8000/admin/habilitacion/autoevaluacion/
+    
+3️⃣  VER AUTOEVALUACIÓN CON CUMPLIMIENTOS
+    Click en "AUT-9009876543-2024"
+    Verás: 63 cumplimientos, 75% de cumplimiento
+    
+4️⃣  EDITAR CUMPLIMIENTOS (OPCIONAL)
+    http://localhost:8000/admin/habilitacion/cumplimiento/
+    Cambiar resultados, agregar hallazgos, documentos
+    
+5️⃣  VER CAMBIOS EN TIEMPO REAL
+    Vuelve a la autoevaluación → El porcentaje se recalcula automáticamente
+
+════════════════════════════════════════════════════════════════════════════════
+
+📝 CAMPOS DE UN CUMPLIMIENTO
+
+┌──────────────────────────────────────────────────────────┐
+│ AUTOEVALUACIÓN                                           │
+│ ¿A cuál evaluación anual pertenece este cumplimiento?   │
+│ (FK a Autoevaluacion)                                    │
+├──────────────────────────────────────────────────────────┤
+│ SERVICIO DE SEDE                                         │
+│ ¿En qué servicio se evaluó? (Emergencias, Lab, etc.)    │
+│ (FK a ServicioSede)                                      │
+├──────────────────────────────────────────────────────────┤
+│ CRITERIO                                                 │
+│ ¿Qué criterio se evaluó? (1.1, 1.2, etc.)               │
+│ (FK a Criterio)                                          │
+├──────────────────────────────────────────────────────────┤
+│ RESULTADO (CUMPLE / NO_CUMPLE / PARCIALMENTE / NO_APLICA)│
+│ ¿Cumple o no?                                           │
+├──────────────────────────────────────────────────────────┤
+│ HALLAZGO                                                 │
+│ ¿Qué encontraste en la evaluación?                      │
+│ (Texto - OPCIONAL)                                       │
+├──────────────────────────────────────────────────────────┤
+│ DOCUMENTOS DE EVIDENCIA                                  │
+│ ¿Qué documentos lo prueban?                             │
+│ (M2M a Documento - OPCIONAL)                             │
+├──────────────────────────────────────────────────────────┤
+│ PLAN DE MEJORA                                           │
+│ ¿Cómo se va a solucionar el NO_CUMPLE?                  │
+│ (Texto - OPCIONAL)                                       │
+├──────────────────────────────────────────────────────────┤
+│ RESPONSABLE DE MEJORA                                    │
+│ ¿Quién es responsable?                                  │
+│ (FK a Usuario - OPCIONAL)                                │
+├──────────────────────────────────────────────────────────┤
+│ FECHA COMPROMISO                                         │
+│ ¿Cuándo se debe solucionar?                             │
+│ (Fecha - OPCIONAL)                                       │
+└──────────────────────────────────────────────────────────┘
+
+════════════════════════════════════════════════════════════════════════════════
+
+💾 RESUMEN DE SCRIPTS DISPONIBLES
+
+┌─────────────────────────────────────────────────────────────┐
+│ habilitacion/sample_data.py                                 │
+│ ─────────────────────────────────────────────────────────   │
+│ Crea DATOS COMPLETOS de ejemplo:                           │
+│   • Empresa + Prestador + 3 Servicios + Autoevaluación     │
+│   • 63 Cumplimientos con datos aleatorios realistas         │
+│   • Listo para ver y modificar                             │
+│                                                             │
+│ USO: exec(open('habilitacion/sample_data.py', ...          │
+│          encoding='utf-8').read())                         │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ habilitacion/create_cumplimientos.py                         │
+│ ─────────────────────────────────────────────────────────   │
+│ Para AUTOEVALUACIÓN YA EXISTENTE:                          │
+│   • Pregunta cuál autoevaluación                           │
+│   • Crea cumplimientos para todos los servicios/criterios  │
+│   • Interactivo y seguro                                    │
+│                                                             │
+│ USO: exec(open('habilitacion/create_cumplimientos.py',     │
+│          encoding='utf-8').read())                         │
+└─────────────────────────────────────────────────────────────┘
+
+════════════════════════════════════════════════════════════════════════════════
+
+🎯 PRÓXIMOS PASOS
+
+✓ Crea datos de ejemplo (sample_data.py)
+✓ Accede a http://localhost:8000/admin/
+✓ Ve autoevaluación con cumplimientos
+✓ Modifica resultados, hallazgos, documentos
+✓ El porcentaje se recalcula automáticamente
+
+LISTO! Ya entiendes cómo funciona el cumplimiento.
+
+════════════════════════════════════════════════════════════════════════════════

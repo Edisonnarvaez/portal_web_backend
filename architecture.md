@@ -36,6 +36,12 @@ graph TB
                 PROCESSES[Processes Module]
             end
             
+            subgraph "Healthcare Compliance Modules"
+                NORMATIVITY[Normativity Module]
+                HABILITACION[Habilitacion Module]
+                MEJORAS[Mejoras Module]
+            end
+            
             MIDDLEWARE[Django Middleware]
             SERIALIZERS[DRF Serializers]
         end
@@ -75,6 +81,7 @@ graph TB
     API_GATEWAY --> INDICATORS
     API_GATEWAY --> AUDIT
     API_GATEWAY --> PROCESSES
+    API_GATEWAY --> MEJORAS
     
     COMPANIES --> DB
     INVOICING --> DB
@@ -82,6 +89,8 @@ graph TB
     AUDIT --> DB
     PROCESSES --> DB
     USERS --> DB
+    MEJORAS --> DB
+    MEJORAS --> FILE_STORAGE
     
     TASK_QUEUE --> EMAIL_SERVICE
     EMAIL_SERVICE --> SMTP
@@ -197,9 +206,21 @@ erDiagram
     Headquarters ||--o{ Result : generates
     Indicator ||--o{ Result : measures
     
-    Auditoria ||--o{ SedeAuditada : audits
     Auditoria }o--|| TipoAuditoria : is_type
     Auditoria }o--|| EntidadAuditoria : performed_by
+    Auditoria ||--o{ MiembroEquipoAuditor : has_team
+    Auditoria ||--o{ HallazgoAuditoria : produces
+    Auditoria ||--o{ ActaReunion : documents
+    ProgramaAuditoria }o--o{ Auditoria : includes
+    
+    PlanMejora ||--o{ Hallazgo : contains
+    PlanMejora ||--o{ SoportePlan : attachments
+    PlanMejora }o--o| Autoevaluacion : from_habilitacion
+    PlanMejora }o--o| Auditoria : from_auditoria
+    HallazgoAuditoria }o--o| Hallazgo : traces_to
+    HallazgoAuditoria }o--o| PlanMejora : linked_plan
+    Cumplimiento }o--o{ PlanMejora : improvement_plan
+    Cumplimiento }o--o{ Hallazgo : has_findings
     
     User {
         int id PK
@@ -294,6 +315,9 @@ graph TD
         PROCESSES[processes/]
         MAIN[main/]
         AUDIT[audit/]
+        MEJORAS[mejoras/]
+        NORMATIVITY[normativity/]
+        HABILITACION[habilitacion/]
     end
 
     subgraph "External Dependencies"
@@ -309,11 +333,17 @@ graph TD
     DJANGO --> PROCESSES
     DJANGO --> MAIN
     DJANGO --> AUDIT
+    DJANGO --> MEJORAS
+    DJANGO --> NORMATIVITY
+    DJANGO --> HABILITACION
 
     DRF --> USERS
     DRF --> COMPANIES
     DRF --> INDICATORS
     DRF --> PROCESSES
+    DRF --> MEJORAS
+    DRF --> AUDIT
+    DRF --> HABILITACION
 
     JWT --> USERS
     JWT --> INDICATORS
@@ -322,6 +352,13 @@ graph TD
     INDICATORS --> COMPANIES
     AUDIT --> COMPANIES
     PROCESSES --> COMPANIES
+    MEJORAS --> HABILITACION
+    MEJORAS --> AUDIT
+    MEJORAS --> INDICATORS
+    MEJORAS --> PROCESSES
+    HABILITACION --> NORMATIVITY
+    HABILITACION --> COMPANIES
+    AUDIT --> MEJORAS
 
     EMAIL --> USERS
     CORS --> DRF
@@ -524,7 +561,562 @@ graph TD
 
 ---
 
-## 🚀 Patrones de Arquitectura Implementados
+## 🏥 Flujo de Habilitación de Servicios de Salud (SUH)
+
+### Diagrama del Proceso de Habilitación
+
+```mermaid
+sequenceDiagram
+    participant Prestador as Prestador<br/>Salud
+    participant Sistema as Portal<br/>Habilitacion
+    participant BD as Base de<br/>Datos
+    participant Admin as Auditor<br/>MINSALUD
+
+    Prestador->>Sistema: 1. Registrar como Prestador
+    Sistema->>BD: Crear DatosPrestador
+    BD-->>Sistema: ID Prestador creado
+    
+    Prestador->>Sistema: 2. Registrar Servicios por Sede
+    Sistema->>BD: Crear ServicioSede (múltiples)
+    BD-->>Sistema: Servicios registrados
+    
+    Prestador->>Sistema: 3. Autoevaluación Anual
+    Sistema->>BD: Crear Autoevaluacion
+    BD-->>Sistema: ID Autoevaluación
+    
+    Prestador->>Sistema: 4. Diligenciar Cumplimientos
+    nota over Prestador,Sistema: 21 Criterios × Servicios = Cumplimientos
+    Sistema->>BD: Crear Cumplimiento
+    BD-->>Sistema: Evaluación registrada
+    
+    Prestador->>Sistema: 5. Generar Reporte
+    Sistema->>BD: Calcular Porcentaje Cumplimiento
+    BD-->>Sistema: Resumen preparado
+    
+    Prestador->>Sistema: 6. Enviar a Revisión
+    Sistema->>Admin: Notificar auditor
+    Admin-->>Sistema: Revisar cumplimientos
+    
+    Admin->>Sistema: Aceptar o Solicitar Mejoras
+    Sistema->>BD: Actualizar estado habilitación
+    BD-->>Prestador: Resultado de habilitación
+```
+
+### Diagrama de Relaciones de Datos - Habilitación
+
+```mermaid
+erDiagram
+    Company ||--|| DatosPrestador : "OneToOne"
+    Headquarters ||--o{ ServicioSede : "contains"
+    DatosPrestador ||--o{ ServicioSede : "provides"
+    DatosPrestador ||--o{ Autoevaluacion : "has"
+    Autoevaluacion ||--o{ Cumplimiento : "contains"
+    ServicioSede ||--o{ Cumplimiento : "evaluated_in"
+    Criterio ||--o{ Cumplimiento : "measures"
+    Estandar ||--o{ Criterio : "groups"
+    
+    DatosPrestador {
+        int id PK
+        int company_id FK "OneToOne"
+        string codigo_reps "Unique"
+        string clase_prestador "IPS|PROF|DROGUERIA|etc"
+        string estado_habilitacion "EN_PROCESO|HABILITADA|NO_HABILITADA|VENCIDA"
+        date fecha_vencimiento_habilitacion
+        text observaciones
+        timestamp fecha_creacion
+    }
+    
+    ServicioSede {
+        int id PK
+        int sede_id FK
+        string codigo_servicio "Unique together with sede"
+        string nombre_servicio
+        string modalidad "HOSPITALIZACION|CONSULTA|URGENCIAS"
+        string complejidad "BAJA|MEDIA|ALTA"
+        date fecha_vencimiento
+        text observaciones
+    }
+    
+    Autoevaluacion {
+        int id PK
+        int datos_prestador_id FK
+        int periodo "2024, 2025, etc"
+        int version "1, 2, 3 (renovaciones)"
+        string estado "BORRADOR|VALIDADA|ENVIADA|APROBADA|RECHAZADA"
+        date fecha_vencimiento
+        int usuario_responsable_id FK
+        datetime fecha_creacion
+    }
+    
+    Cumplimiento {
+        int id PK
+        int autoevaluacion_id FK
+        int servicio_sede_id FK
+        int criterio_id FK
+        string cumple "CUMPLE|NO_CUMPLE|PARCIALMENTE"
+        text hallazgo
+        text plan_mejora
+        date fecha_compromiso
+        boolean mejora_vencida
+    }
+    
+    Criterio {
+        int id PK
+        string codigo_estandar FK
+        string codigo "7.1, 7.2, etc"
+        string nombre
+        string complejidad "BAJA|MEDIA|ALTA"
+        boolean requiere_evidencia
+        text descripcion
+    }
+    
+    Estandar {
+        string codigo PK "TH|INF|DOT|PO|RS|GI|SA"
+        string nombre "Talento Humano, etc"
+        string version_resolucion "3100/2019"
+        text descripcion
+    }
+```
+
+### Diagrama de Relaciones de Datos - Habilitación
+
+```mermaid
+erDiagram
+    Company ||--|| DatosPrestador : "habilitacion"
+    Headquarters ||--o{ ServicioSede : "contains"
+    DatosPrestador ||--o{ Autoevaluacion : "has"
+    Autoevaluacion ||--o{ Cumplimiento : "evaluates"
+    ServicioSede ||--o{ Cumplimiento : "evaluated_in"
+    Criterio ||--o{ Cumplimiento : "measures"
+    Estandar ||--o{ Criterio : "groups"
+    User ||--o{ Cumplimiento : "responsible_for"
+    Documento ||--o{ Cumplimiento : "evidences"
+    
+    DatosPrestador {
+        int id PK
+        int company_id FK "OneToOne"
+        int headquarters_id FK "OneToOne"
+        string codigo_reps "Unique, max 20"
+        string clase_prestador "IPS|PROF|PH|PJ"
+        string estado_habilitacion "HABILITADA|EN_PROCESO|SUSPENDIDA|NO_HABILITADA|CANCELADA"
+        date fecha_inscripcion
+        date fecha_renovacion
+        date fecha_vencimiento_habilitacion
+        string aseguradora_pep
+        string numero_poliza
+        date vigencia_poliza
+        datetime fecha_creacion
+        datetime fecha_actualizacion
+    }
+    
+    ServicioSede {
+        int id PK
+        int sede_id FK
+        string codigo_servicio "Unique with sede"
+        string nombre_servicio
+        text descripcion
+        string modalidad "INTRAMURAL|AMBULATORIA|TELEMEDICINA|URGENCIAS|AMBULANCIA"
+        string complejidad "BAJA|MEDIA|ALTA"
+        string estado_habilitacion "HABILITADO|EN_PROCESO|SUSPENDIDO|NO_HABILITADO|CANCELADO"
+        date fecha_habilitacion
+        date fecha_vencimiento
+        datetime fecha_creacion
+        datetime fecha_actualizacion
+    }
+    
+    Autoevaluacion {
+        int id PK
+        int datos_prestador_id FK
+        int periodo "2024-2028"
+        int version "1, 2, 3 (renovaciones)"
+        string estado "BORRADOR|EN_CURSO|COMPLETADA|REVISADA|VALIDADA"
+        date fecha_inicio
+        date fecha_completacion
+        date fecha_vencimiento
+        int usuario_responsable_id FK
+        text observaciones
+        datetime fecha_creacion
+        datetime fecha_actualizacion
+    }
+    
+    Cumplimiento {
+        int id PK
+        int autoevaluacion_id FK
+        int servicio_sede_id FK
+        int criterio_id FK
+        string cumple "CUMPLE|NO_CUMPLE|PARCIALMENTE|NO_APLICA"
+        text hallazgo
+        text plan_mejora
+        int responsable_mejora_id FK
+        date fecha_compromiso
+        datetime fecha_creacion
+        datetime fecha_actualizacion
+    }
+    
+    Criterio {
+        int id PK
+        int estandar_id FK
+        string codigo "1.1, 1.2, etc"
+        string nombre "Nombre del criterio"
+        text descripcion
+        string complejidad "BAJA|MEDIA|ALTA"
+        boolean requiere_evidencia
+    }
+    
+    Estandar {
+        string codigo PK "TH|INF|DOT|PO|RS|GI|SA"
+        string nombre "Talento Humano, etc"
+        string version_resolucion "3100/2019"
+        text descripcion
+        boolean estado
+    }
+```
+
+### Diagrama de Relaciones - Mejoras y Auditorías
+
+```mermaid
+erDiagram
+    PlanMejora ||--o{ Hallazgo : "contains"
+    PlanMejora ||--o{ SoportePlan : "attachments"
+    PlanMejora }o--o| Autoevaluacion : "from_habilitacion"
+    PlanMejora }o--o| Auditoria : "from_auditoria"
+    PlanMejora }o--o| Indicator : "from_indicador"
+    PlanMejora }o--o| Process : "from_proceso"
+    
+    Auditoria }o--|| TipoAuditoria : "classified_as"
+    Auditoria }o--o| EntidadAuditoria : "performed_by"
+    Auditoria ||--o{ MiembroEquipoAuditor : "team"
+    Auditoria ||--o{ HallazgoAuditoria : "findings"
+    Auditoria ||--o{ ActaReunion : "minutes"
+    ProgramaAuditoria }o--o{ Auditoria : "includes"
+    
+    HallazgoAuditoria }o--o| Hallazgo : "traces_to_mejora"
+    HallazgoAuditoria }o--o| PlanMejora : "linked_plan"
+    
+    PlanMejora {
+        int id PK
+        string numero_plan "Unique"
+        string titulo
+        string origen_tipo "HABILITACION|AUDITORIA|INDICADOR|PROCESO|OTRO"
+        string estado "IDENTIFICADO|EN_ANALISIS|EN_IMPLEMENTACION|EN_VERIFICACION|CERRADO|CANCELADO"
+        date fecha_inicio
+        date fecha_vencimiento
+        int porcentaje_avance "0-100"
+        int responsable_id FK
+        int autoevaluacion_id FK "Nullable"
+        int auditoria_id FK "Nullable"
+    }
+    
+    Hallazgo {
+        int id PK
+        string numero_hallazgo "Unique"
+        int plan_mejora_id FK
+        string tipo "NC_MAYOR|NC_MENOR|OBSERVACION|OPORTUNIDAD|FORTALEZA"
+        string severidad "CRITICA|ALTA|MEDIA|BAJA"
+        string estado "ABIERTO|EN_TRATAMIENTO|CERRADO|VERIFICADO"
+        text descripcion
+        date fecha_identificacion
+    }
+    
+    SoportePlan {
+        int id PK
+        int plan_mejora_id FK
+        string tipo_soporte "EVIDENCIA|ACTA|INFORME|FOTOGRAFIA|PLAN_ACCION|OTRO"
+        file archivo "media/SoportesPlanes/ UUID"
+        string nombre_original
+        int tamano_bytes "max 10MB"
+        int subido_por_id FK
+    }
+    
+    Auditoria {
+        int id PK
+        string titulo
+        string fase "PROGRAMADA|NOTIFICADA|EN_EJECUCION|INFORME|SEGUIMIENTO|CERRADA|CANCELADA"
+        string clasificacion "INTERNA|EXTERNA|COMBINADA"
+        int tipo_auditoria_id FK
+        int entidad_auditora_id FK
+        date fecha_programada
+        date fecha_inicio
+        date fecha_cierre
+    }
+    
+    HallazgoAuditoria {
+        int id PK
+        int auditoria_id FK
+        string numero "Unique"
+        string tipo "NC_MAYOR|NC_MENOR|OBSERVACION|OPORTUNIDAD|FORTALEZA"
+        text evidencia_objetiva
+        int hallazgo_mejora_id FK "Nullable to mejoras.Hallazgo"
+        int plan_mejora_id FK "Nullable to mejoras.PlanMejora"
+    }
+    
+    MiembroEquipoAuditor {
+        int id PK
+        int auditoria_id FK
+        int usuario_id FK
+        string rol "LIDER|AUDITOR|OBSERVADOR|EXPERTO_TECNICO"
+    }
+    
+    ActaReunion {
+        int id PK
+        int auditoria_id FK
+        string tipo_acta "APERTURA|CIERRE|SEGUIMIENTO"
+        date fecha
+        text contenido
+    }
+    
+    ProgramaAuditoria {
+        int id PK
+        string nombre
+        string estado "BORRADOR|APROBADO|EN_EJECUCION|COMPLETADO"
+        int periodo "2024-2028"
+        float avance_porcentaje "Calculated"
+    }
+    
+    TipoAuditoria {
+        int tipo_id PK
+        string nombre "Unique"
+        boolean requiere_entidad_externa
+    }
+    
+    EntidadAuditoria {
+        int entidad_id PK
+        string nombre "Unique"
+        string tipo_entidad "ENTE_CONTROL|CERTIFICADORA|etc"
+    }
+```
+
+### Flujo de Ciclo de Vida de Auditoría
+
+```mermaid
+stateDiagram-v2
+    [*] --> PROGRAMADA : Crear auditoría
+    PROGRAMADA --> NOTIFICADA : Notificar equipo
+    NOTIFICADA --> EN_EJECUCION : Iniciar ejecución
+    EN_EJECUCION --> INFORME : Generar informe
+    INFORME --> SEGUIMIENTO : Iniciar seguimiento
+    SEGUIMIENTO --> CERRADA : Cerrar auditoría
+    PROGRAMADA --> CANCELADA : Cancelar
+    NOTIFICADA --> CANCELADA : Cancelar
+    CERRADA --> [*]
+    CANCELADA --> [*]
+```
+
+### Flujo Transaccional de Habilitación
+
+```mermaid
+sequenceDiagram
+    participant Prestador
+    participant API
+    participant DB
+    participant Admin
+
+    Prestador->>API: 1. POST Crear DatosPrestador
+    API->>DB: Guardar prestador + estado EN_PROCESO
+    DB-->>API: ID creado
+    
+    Prestador->>API: 2. POST Crear ServicioSede (múltiples)
+    API->>DB: Guardar servicios por sede
+    DB-->>API: IDs servicios
+    
+    Prestador->>API: 3. POST Crear Autoevaluacion
+    API->>DB: Generar AUT-REPS-PERIODO-VERSION
+    DB-->>API: ID autoevaluación
+    
+    Prestador->>API: 4. POST Crear Cumplimientos (21+ criterios)
+    note over API,DB: Para cada combinación:<br/>Autoevaluacion + Servicio + Criterio
+    API->>DB: Guardar resultado + plan mejora
+    DB-->>API: ID cumplimiento
+    
+    Prestador->>API: 5. GET Resumen Autoevaluacion
+    API->>DB: Calcular % cumplimiento
+    DB-->>API: Estadísticas
+    
+    Prestador->>API: 6. POST Validar Autoevaluacion
+    API->>DB: Cambiar estado a VALIDADA
+    DB-->>API: Confirmación
+    
+    API->>Admin: Notificación: Nueva autoevaluación validada
+    
+    Admin->>API: Revisar cumplimientos y planes de mejora
+    Admin->>API: POST Validación final
+    API->>DB: Actualizar estado DatosPrestador
+    DB-->>Prestador: Resultado de habilitación
+```
+
+### Acciones Disponibles en API - Habilitación
+
+#### DatosPrestador Endpoints (Prestadores)
+
+```
+GET    /api/habilitacion/prestadores/
+       Listar constantes todos los prestadores con paginación
+       Query: page, search, estado_habilitacion, clase_prestador, ordering
+
+POST   /api/habilitacion/prestadores/
+       Crear nuevo prestador
+       Body: codigo_reps, company_id, clase_prestador, estado_habilitacion, etc.
+
+GET    /api/habilitacion/prestadores/{id}/
+       Obtener detalle completo del prestador
+
+PATCH  /api/habilitacion/prestadores/{id}/
+       Actualizar información del prestador
+
+DELETE /api/habilitacion/prestadores/{id}/
+       Eliminar prestador (solo si no tiene evaluaciones)
+
+GET    /api/habilitacion/prestadores/proximos_a_vencer/
+       Prestadores con habilitación venciendo en próximos 90 días
+       Response: Lista paginada con días_vencimiento
+
+GET    /api/habilitacion/prestadores/vencidas/
+       Prestadores con habilitación ya vencida
+       Response: Ordenado por fecha de vencimiento
+
+GET    /api/habilitacion/prestadores/{id}/servicios/
+       Listar todos los servicios habilitados de un prestador
+       Response: Lista de ServicioSede
+
+GET    /api/habilitacion/prestadores/{id}/autoevaluaciones/
+       Historial de autoevaluaciones del prestador
+       Response: Lista paginada ordenada por período descendente
+
+POST   /api/habilitacion/prestadores/{id}/iniciar_renovacion/
+       Iniciar proceso de renovación de habilitación
+       Validación: Solo si falta ≤180 días para vencimiento
+       Response: DatosPrestador con estado = EN_PROCESO
+```
+
+#### ServicioSede Endpoints (Servicios)
+
+```
+GET    /api/habilitacion/servicios/
+       Listar todos los servicios
+       Filtros: sede, modalidad, complejidad, estado_habilitacion
+       Búsqueda: Código o nombre del servicio
+
+POST   /api/habilitacion/servicios/
+       Crear nuevo servicio
+       Body: sede_id, codigo_servicio, nombre_servicio, modalidad, complejidad
+
+GET    /api/habilitacion/servicios/{id}/
+       Obtener detalle del servicio
+
+PATCH  /api/habilitacion/servicios/{id}/
+       Actualizar información del servicio
+
+DELETE /api/habilitacion/servicios/{id}/
+       Eliminar servicio
+
+GET    /api/habilitacion/servicios/proximos_a_vencer/
+       Servicios con vencimiento próximo (0-90 días)
+       Response: Lista ordenada por fecha vencimiento
+
+GET    /api/habilitacion/servicios/por_complejidad/
+       Filtrar servicios por nivel de complejidad
+       Query: complejidad=BAJA|MEDIA|ALTA
+       Response: Lista filtrada
+
+GET    /api/habilitacion/servicios/{id}/cumplimientos/
+       Obtener cumplimientos evaluados del servicio
+       Query: autoevaluacion_id (opcional)
+       Response: Lista de Cumplimiento
+```
+
+#### Autoevaluacion Endpoints (Evaluaciones)
+
+```
+GET    /api/habilitacion/autoevaluaciones/
+       Listar autoevaluaciones
+       Filtros: datos_prestador, periodo, estado
+       Búsqueda: numero_autoevaluacion, codigo_reps
+
+POST   /api/habilitacion/autoevaluaciones/
+       Crear nueva autoevaluación
+       Body: datos_prestador_id, periodo, fecha_vencimiento
+       Auto: numero_autoevaluacion generado
+
+GET    /api/habilitacion/autoevaluaciones/{id}/
+       Obtener detalle completo con cumplimientos_data
+       Response: Includes porcentaje_cumplimiento, resumen
+
+PATCH  /api/habilitacion/autoevaluaciones/{id}/
+       Actualizar autoevaluación (notas, observaciones)
+
+DELETE /api/habilitacion/autoevaluaciones/{id}/
+       Eliminar autoevaluación (solo BORRADOR)
+
+GET    /api/habilitacion/autoevaluaciones/por_completar/
+       Autoevaluaciones sin completar (BORRADOR, EN_CURSO)
+       Response: Lista con urgencia de completación
+
+GET    /api/habilitacion/autoevaluaciones/{id}/resumen/
+       Resumen estadístico completo de la evaluación
+       Response: {
+         total_cumplimientos: 80,
+         resumen_por_resultado: {
+           cumple: 70,
+           no_cumple: 5,
+           parcialmente: 3,
+           no_aplica: 2
+         },
+         porcentaje_cumplimiento: 87.5,
+         pendientes_mejora: 5,
+         mejoras_vencidas: 1
+       }
+
+POST   /api/habilitacion/autoevaluaciones/{id}/validar/
+       Cambiar estado a VALIDADA
+       Generador de fecha_completacion automática
+       Response: Autoevaluación actualizada
+
+POST   /api/habilitacion/autoevaluaciones/{id}/duplicar/
+       Crear nueva versión para próximo período
+       Action: Copia datos, incrementa período y versión
+       Response: Nueva Autoevaluación creada (201 CREATED)
+```
+
+#### Cumplimiento Endpoints (Criterios Evaluados)
+
+```
+GET    /api/habilitacion/cumplimientos/
+       Listar cumplimientos
+       Filtros: autoevaluacion, servicio_sede, criterio, cumple
+       Búsqueda: Código o nombre criterio
+
+POST   /api/habilitacion/cumplimientos/
+       Crear evaluación de criterio
+       Body: autoevaluacion_id, servicio_sede_id, criterio_id, 
+             cumple, hallazgo, plan_mejora, responsable_mejora, 
+             fecha_compromiso
+
+GET    /api/habilitacion/cumplimientos/{id}/
+       Obtener detalle completo del cumplimiento
+       Response: Includes criterio_detail, documentos_evidencia_list
+
+PATCH  /api/habilitacion/cumplimientos/{id}/
+       Actualizar result de cumplimiento
+       Actualizar hallazgo, plan mejora, responsable
+
+DELETE /api/habilitacion/cumplimientos/{id}/
+       Eliminar cumplimiento
+
+GET    /api/habilitacion/cumplimientos/sin_cumplir/
+       Criterios NO_CUMPLE con planes de mejora
+       Response: Lista ordenada por fecha_compromiso
+
+GET    /api/habilitacion/cumplimientos/con_plan_mejora/
+       Cumplimientos con plan de mejora pendiente
+       Response: Lista completa de pendientes
+
+GET    /api/habilitacion/cumplimientos/mejoras_vencidas/
+       Compromisos de mejora con fecha vencida
+       CRITICAL: Usar para alertas
+       Response: Lista roja de prioridad máxima
+```
+
+---
 
 ### 1. Model-View-Controller (MVC)
 ```python
@@ -671,57 +1263,67 @@ graph TB
 
 ---
 
-## 🛠️ Tecnologías y Herramientas
+---
 
-### Stack Tecnológico Completo
+## 📚 Stack Tecnológico Completo
 
-| Capa | Tecnología | Propósito |
-|------|------------|-----------|
-| **Backend Framework** | Django 5.2.2 | Framework web principal |
-| **API Framework** | Django REST Framework | API REST |
-| **Database** | PostgreSQL/SQLite | Base de datos relacional |
-| **Cache** | Redis | Cache y sesiones |
-| **Authentication** | JWT | Autenticación stateless |
-| **Task Queue** | Celery | Tareas asíncronas |
-| **Web Server** | Nginx + Waitress | Servidor web y WSGI |
-| **Monitoring** | Sentry | Monitoreo de errores |
-| **Documentation** | DRF-Spectacular | Documentación API |
-| **Testing** | Pytest | Testing framework |
-| **Code Quality** | Black, Flake8 | Formateo y linting |
+| Capa | Tecnología | Propósito | Versión |
+|------|------------|-----------|---------|
+| **Backend Framework** | Django | Framework web principal | 5.2.2+ |
+| **API Framework** | Django REST Framework | API REST | 3.16.0+ |
+| **Database** | PostgreSQL / SQLite | Base de datos relacional | 15+/3+ |
+| **Cache** | Redis | Cache y sesiones | 7.0+ |
+| **Authentication** | django-rest-framework-simplejwt | Autenticación JWT | Integrado |
+| **Task Queue** | Celery | Tareas asíncronas | 5.3+ |
+| **Web Server** | Nginx + Waitress | Servidor web y WSGI | Waitress 2.1+ |
+| **Monitoring** | Sentry | Monitoreo de errores | Opcional |
+| **Documentation** | DRF-Spectacular | Documentación automática OpenAPI | Planeado |
+| **Testing** | Pytest / unittest | Testing framework | Pytest 8.0+ |
+| **Code Quality** | Black, Flake8, isort | Formateo y linting | Latest |
+| **API Documentation** | Postman | Colección de ejemplos | 40+ endpoints |
+| **Frontend Docs** | Markdown | Documentación técnica frontend | documentos.md |
 
-### Configuración de Entornos
+### Configuración por Entorno
 
+#### Desarrollo
 ```python
-# settings/base.py
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'corsheaders',
-    # Custom apps
-    'users',
-    'companies',
-    'indicators',
-    'processes',
-    'main',
-]
+# settings/development.py
+DEBUG = True
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
+```
 
+#### Producción
+```python
 # settings/production.py
+DEBUG = False
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'OPTIONS': {
-            'MAX_CONNS': 20,
-            'conn_max_age': 600,
-        }
+        'NAME': os.environ.get('POSTGRES_DB'),
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': os.environ.get('POSTGRES_HOST'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        'CONN_MAX_AGE': 600,
     }
 }
-
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
     }
 }
 ```
@@ -764,35 +1366,77 @@ CACHES = {
   - ✅ Testing independiente
   - ❌ Complejidad en relaciones entre apps
 
+#### ADR-004: Módulo Transversal de Mejoras
+- **Fecha**: 2026-02-19
+- **Estado**: Aceptado
+- **Contexto**: Planes de mejora y hallazgos originados en habilitación y auditorías
+- **Decisión**: App separada `mejoras/` con FKs opcionales a habilitación, auditoría, indicadores y procesos
+- **Consecuencias**:
+  - ✅ Origen trazable (HABILITACION, AUDITORIA, INDICADOR, PROCESO, OTRO)
+  - ✅ Un solo punto de gestión de planes de mejora
+  - ✅ Soportes/adjuntos con validación de extensión y tamaño (10 MB)
+  - ❌ Relaciones cruzadas entre apps requieren cuidado en migraciones
+
+#### ADR-005: Ciclo de Vida de Auditorías con Fases
+- **Fecha**: 2026-02-19
+- **Estado**: Aceptado
+- **Contexto**: Auditorías requieren control estricto de progreso
+- **Decisión**: 7 fases con transiciones validadas (PROGRAMADA→NOTIFICADA→EN_EJECUCION→INFORME→SEGUIMIENTO→CERRADA o CANCELADA)
+- **Consecuencias**:
+  - ✅ Trazabilidad completa del ciclo de vida
+  - ✅ Transiciones validadas con `puede_avanzar_a()` y `avanzar_fase()`
+  - ✅ Fechas automáticas por fase
+  - ❌ Complejidad en lógica de transiciones
+
+---
+
 ---
 
 ## 🔮 Roadmap de Arquitectura
 
-### Fase 1: Consolidación (Q1 2025)
-- [ ] Completar módulo de auditoría
-- [ ] Implementar testing completo
-- [ ] Optimizar consultas de base de datos
-- [ ] Documentar APIs con OpenAPI
+### Fase 1: Consolidación (Q1 2025) ✅ COMPLETADO
+- [x] Completar módulo de auditoría
+- [x] Implementar testing completo (49+ test methods)
+- [x] Optimizar consultas de base de datos con select_related/prefetch_related
+- [x] Documentar APIs con serializers y docstrings
+- [x] Módulo Normativity con 7 estándares + 21 criterios
+- [x] Módulo Habilitación completo (DatosPrestador, ServicioSede, Autoevaluacion, Cumplimiento)
+- [x] Documentación Frontend (documentos.md)
+- [x] Postman Collection con 40+ ejemplos
 
-### Fase 2: Escalabilidad (Q2 2025)
-- [ ] Migrar a PostgreSQL en producción
-- [ ] Implementar Redis para caching
-- [ ] Configurar Celery para tareas asíncronas
+### Fase 2: Mejoras y Auditorías (Q1 2026) ✅ COMPLETADO
+- [x] Módulo transversal `mejoras/` (PlanMejora, Hallazgo, SoportePlan)
+- [x] Carga de soportes/adjuntos (PDF, Word, Excel, PNG) hasta 10 MB
+- [x] Almacenamiento en `media/SoportesPlanes/` con nombres únicos UUID
+- [x] Rediseño completo del módulo `audit/` con ciclo de vida de 7 fases
+- [x] Equipos auditores, hallazgos con trazabilidad, actas, programas
+- [x] Integración habilitación ↔ mejoras (contadores, resúmenes vinculados)
+- [x] Integración auditorías ↔ mejoras (HallazgoAuditoria → Hallazgo/PlanMejora)
+- [x] Suite de tests ampliada (100+ test methods, 54 endpoints verificados)
+- [x] Documentación actualizada (documentos.md v2.0, README v2.0, architecture.md)
+
+### Fase 3: Escalabilidad (Q2 2026) 🔄 PENDIENTE
+- [ ] Migrar a PostgreSQL en producción (preparado)
+- [ ] Implementar Redis para caching de consultas frecuentes
+- [ ] Configurar Celery para envío de emails asincrónico
 - [ ] Implementar monitoring con Sentry
+- [ ] Circuit breakers para APIs externas
 
-### Fase 3: Optimización (Q3 2025)
+### Fase 4: Optimización (Q3 2026)
 - [ ] Implementar CDN para archivos estáticos
-- [ ] Optimizar performance de APIs
-- [ ] Implementar circuit breakers
-- [ ] Configurar auto-scaling
+- [ ] Optimización de performance de APIs (< 200ms)
+- [ ] Database connection pooling
+- [ ] API rate limiting y throttling
+- [ ] Caching a nivel de serializers
 
-### Fase 4: Avanzada (Q4 2025)
-- [ ] Implementar Event Sourcing para auditoría
-- [ ] Migrar a arquitectura de microservicios
-- [ ] Implementar GraphQL API
-- [ ] Machine Learning para predicciones
+### Fase 5: Avanzada (Q4 2026)
+- [ ] Event Sourcing para auditoría completa
+- [ ] GraphQL API complementaria
+- [ ] Machine Learning para análisis de cumplimiento
+- [ ] Integración con APIs del gobierno (REPS, MinSalud)
+- [ ] CI/CD pipeline completo
 
 ---
 
-*Documento actualizado: Octubre 2025*  
-*Próxima revisión: Enero 2026*
+*Documento actualizado: Febrero 2026*  
+*Próxima revisión: Mayo 2026*

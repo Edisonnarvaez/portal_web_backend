@@ -36,6 +36,10 @@ urlpatterns = [
     path('api/processes/', include('processes.urls')),
     path('api/main/', include('main.urls')),
     path('api/indicators/', include('indicators.urls')),
+    path('api/normativity/', include('normativity.urls')),
+    path('api/habilitacion/', include('habilitacion.urls')),
+    path('api/mejoras/', include('mejoras.urls')),
+    path('api/audit/', include('audit.urls')),
 ]
 
 if settings.DEBUG:
