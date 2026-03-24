@@ -1,9 +1,10 @@
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, FileResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.utils.decorators import method_decorator
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import AccessToken
 import mimetypes
@@ -14,7 +15,6 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import Documento
 from .serializers import DocumentoSerializer
-from django.http import FileResponse
 
 class DocumentoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -67,8 +67,6 @@ class DocumentoViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return HttpResponse(f'Error al acceder al archivo: {str(e)}', status=500)
 
-    from django.http import FileResponse
-
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """Endpoint para descargar documentos"""
@@ -119,25 +117,20 @@ class DocumentoViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return HttpResponse(f'Error al acceder al archivo: {str(e)}', status=500)
 
+    @action(detail=False, methods=['get'])
+    def vigentes(self, request):
+        """Endpoint para obtener solo los documentos vigentes."""
+        documentos_vigentes = Documento.get_documentos_vigentes()
+        serializer = self.get_serializer(documentos_vigentes, many=True)
+        return Response(serializer.data)
 
+    @action(detail=True, methods=['post'])
+    def crear_nueva_version(self, request, pk=None):
+        """Endpoint para crear una nueva versión de un documento."""
+        documento_padre = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(documento_padre=documento_padre)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        @action(detail=False, methods=['get'])
-        def vigentes(self, request):
-            """Endpoint para obtener solo los documentos vigentes"""
-            documentos_vigentes = Documento.get_documentos_vigentes()
-            serializer = self.get_serializer(documentos_vigentes, many=True)
-            return Response(serializer.data)
-
-        @action(detail=True, methods=['post'])
-        def crear_nueva_version(self, request, pk=None):
-            """Endpoint para crear una nueva versión de un documento"""
-            documento_padre = self.get_object()
-            
-            # Crear una nueva versión
-            serializer = self.get_serializer(data=request.data)
-            if serializer.is_valid():
-                # El documento padre se establece automáticamente
-                serializer.save(documento_padre=documento_padre)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

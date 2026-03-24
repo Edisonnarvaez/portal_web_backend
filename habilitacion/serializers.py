@@ -9,7 +9,20 @@ from rest_framework import serializers
 from django.utils import timezone
 from datetime import timedelta
 
-from .models import DatosPrestador, ServicioSede, Autoevaluacion, Cumplimiento
+from .models import (
+    DatosPrestador,
+    ServicioSede,
+    Autoevaluacion,
+    Cumplimiento,
+    CapacidadInstalada,
+    MedidaSeguridadServicio,
+    SancionServicio,
+    NovedadREPS,
+    RequisitoDocumental,
+    ChecklistVerificacion,
+    ChecklistItem,
+    EvidenciaChecklist,
+)
 from companies.models import Company, Headquarters
 from normativity.models import Criterio
 from processes.models import Documento
@@ -460,7 +473,7 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
     )
     documentos_evidencia = serializers.PrimaryKeyRelatedField(
         many=True,
-        queryset=Documento.objects.filter(estado='VIGENTE'),
+        queryset=Documento.objects.filter(estado='VIG', activo=True),
         required=False
     )
     documentos_evidencia_list = serializers.SerializerMethodField(read_only=True)
@@ -779,3 +792,186 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             }
             for h in hallazgos
         ]
+
+
+class CapacidadInstaladaSerializer(serializers.ModelSerializer):
+    tipo_capacidad_display = serializers.CharField(source='get_tipo_capacidad_display', read_only=True)
+
+    class Meta:
+        model = CapacidadInstalada
+        fields = [
+            'id',
+            'servicio_sede',
+            'tipo_capacidad',
+            'tipo_capacidad_display',
+            'subtipo',
+            'cantidad',
+            'unidad',
+            'observaciones',
+            'activo',
+            'fecha_creacion',
+            'fecha_actualizacion',
+        ]
+        read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
+
+
+class MedidaSeguridadServicioSerializer(serializers.ModelSerializer):
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+
+    class Meta:
+        model = MedidaSeguridadServicio
+        fields = [
+            'id',
+            'servicio_sede',
+            'norma_referencia',
+            'descripcion',
+            'estado',
+            'estado_display',
+            'fecha_inicio',
+            'fecha_fin',
+            'autoridad',
+            'observaciones',
+            'fecha_creacion',
+            'fecha_actualizacion',
+        ]
+        read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
+
+
+class SancionServicioSerializer(serializers.ModelSerializer):
+    tipo_sancion_display = serializers.CharField(source='get_tipo_sancion_display', read_only=True)
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+
+    class Meta:
+        model = SancionServicio
+        fields = [
+            'id',
+            'servicio_sede',
+            'norma_referencia',
+            'tipo_sancion',
+            'tipo_sancion_display',
+            'estado',
+            'estado_display',
+            'acto_administrativo',
+            'autoridad',
+            'fecha_inicio',
+            'fecha_fin',
+            'descripcion',
+            'fecha_creacion',
+            'fecha_actualizacion',
+        ]
+        read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
+
+
+class NovedadREPSSerializer(serializers.ModelSerializer):
+    tipo_novedad_display = serializers.CharField(source='get_tipo_novedad_display', read_only=True)
+    subtipo_novedad_display = serializers.CharField(source='get_subtipo_novedad_display', read_only=True)
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+
+    class Meta:
+        model = NovedadREPS
+        fields = [
+            'id',
+            'codigo_novedad',
+            'tipo_novedad',
+            'tipo_novedad_display',
+            'subtipo_novedad',
+            'subtipo_novedad_display',
+            'estado',
+            'estado_display',
+            'datos_prestador',
+            'sede',
+            'servicio_sede',
+            'requiere_visita_previa',
+            'fecha_radicacion',
+            'descripcion',
+            'observaciones',
+            'creado_por',
+            'fecha_creacion',
+            'fecha_actualizacion',
+        ]
+        read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion', 'creado_por']
+
+
+class RequisitoDocumentalSerializer(serializers.ModelSerializer):
+    tipo_tramite_display = serializers.CharField(source='get_tipo_tramite_display', read_only=True)
+
+    class Meta:
+        model = RequisitoDocumental
+        fields = [
+            'id',
+            'codigo',
+            'nombre',
+            'tipo_tramite',
+            'tipo_tramite_display',
+            'descripcion',
+            'obligatorio',
+            'activo',
+            'fecha_creacion',
+            'fecha_actualizacion',
+        ]
+        read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
+
+
+class EvidenciaChecklistSerializer(serializers.ModelSerializer):
+    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+
+    class Meta:
+        model = EvidenciaChecklist
+        fields = [
+            'id',
+            'checklist_item',
+            'tipo',
+            'tipo_display',
+            'nombre',
+            'archivo',
+            'hash_integridad',
+            'subido_por',
+            'fecha_subida',
+        ]
+        read_only_fields = ['id', 'fecha_subida', 'subido_por']
+
+
+class ChecklistItemSerializer(serializers.ModelSerializer):
+    requisito_detail = RequisitoDocumentalSerializer(source='requisito', read_only=True)
+    evidencias = EvidenciaChecklistSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ChecklistItem
+        fields = [
+            'id',
+            'checklist',
+            'requisito',
+            'requisito_detail',
+            'obligatorio',
+            'cumple',
+            'observaciones',
+            'verificado_por',
+            'fecha_verificacion',
+            'evidencias',
+            'fecha_creacion',
+            'fecha_actualizacion',
+        ]
+        read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion', 'verificado_por']
+
+
+class ChecklistVerificacionSerializer(serializers.ModelSerializer):
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    items = ChecklistItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ChecklistVerificacion
+        fields = [
+            'id',
+            'codigo_checklist',
+            'estado',
+            'estado_display',
+            'novedad',
+            'servicio_sede',
+            'responsable',
+            'fecha_cierre',
+            'observaciones',
+            'items',
+            'fecha_creacion',
+            'fecha_actualizacion',
+        ]
+        read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion', 'responsable']

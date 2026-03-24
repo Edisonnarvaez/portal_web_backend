@@ -55,7 +55,6 @@ Este documento define los perfiles de agentes especializados para el desarrollo 
 - Django Debug Toolbar
 - Postman/Insomnia para testing de APIs
 ```
-
 ### Tareas Específicas del Proyecto
 
 #### Inmediatas

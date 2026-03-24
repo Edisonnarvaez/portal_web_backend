@@ -5,16 +5,30 @@ ViewSets para la API de habilitación de servicios de salud.
 Incluye lógica transaccional, filtrado avanzado y acciones personalizadas.
 """
 
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, status, filters, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Q, Count, Avg, Case, When, IntegerField
 from datetime import timedelta
 
-from .models import DatosPrestador, ServicioSede, Autoevaluacion, Cumplimiento
+from .models import (
+    DatosPrestador,
+    ServicioSede,
+    Autoevaluacion,
+    Cumplimiento,
+    CapacidadInstalada,
+    MedidaSeguridadServicio,
+    SancionServicio,
+    NovedadREPS,
+    RequisitoDocumental,
+    ChecklistVerificacion,
+    ChecklistItem,
+    EvidenciaChecklist,
+)
 from .serializers import (
     DatosPrestadorListSerializer,
     DatosPrestadorDetailSerializer,
@@ -24,6 +38,14 @@ from .serializers import (
     AutoevaluacionDetailSerializer,
     CumplimientoListSerializer,
     CumplimientoDetailSerializer,
+    CapacidadInstaladaSerializer,
+    MedidaSeguridadServicioSerializer,
+    SancionServicioSerializer,
+    NovedadREPSSerializer,
+    RequisitoDocumentalSerializer,
+    ChecklistVerificacionSerializer,
+    ChecklistItemSerializer,
+    EvidenciaChecklistSerializer,
 )
 
 
@@ -57,7 +79,8 @@ class DatosPrestadorViewSet(viewsets.ModelViewSet):
     ]
     search_fields = [
         'codigo_reps',
-        'company__name',
+        'headquarters__company__name',
+        'nombre_prestador',
     ]
     ordering_fields = [
         'fecha_vencimiento_habilitacion',
@@ -549,22 +572,22 @@ class CumplimientoViewSet(viewsets.ModelViewSet):
         
         serializer = CumplimientoListSerializer(queryset, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=False, methods=['get'])
     def con_plan_mejora(self, request):
         """Cumplimientos con plan de mejora pendiente."""
         queryset = self.queryset.filter(
             plan_mejora__isnull=False
         ).exclude(plan_mejora='')
-        
+
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = CumplimientoListSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-        
+
         serializer = CumplimientoListSerializer(queryset, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=False, methods=['get'])
     def mejoras_vencidas(self, request):
         """Planes de mejora con fecha comprometida vencida."""
@@ -573,11 +596,144 @@ class CumplimientoViewSet(viewsets.ModelViewSet):
             fecha_compromiso__lt=hoy,
             cumple='NO_CUMPLE'
         ).order_by('fecha_compromiso')
-        
+
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = CumplimientoListSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-        
+
         serializer = CumplimientoListSerializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class CapacidadInstaladaViewSet(viewsets.ModelViewSet):
+    """API para capacidad instalada de servicios (camas, ambulancias, salas, etc.)."""
+
+    queryset = CapacidadInstalada.objects.select_related('servicio_sede', 'servicio_sede__prestador')
+    serializer_class = CapacidadInstaladaSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['servicio_sede', 'tipo_capacidad', 'activo']
+    ordering_fields = ['fecha_creacion', 'cantidad']
+    ordering = ['-fecha_creacion']
+
+
+class MedidaSeguridadServicioViewSet(viewsets.ModelViewSet):
+    """API para medidas de seguridad por servicio."""
+
+    queryset = MedidaSeguridadServicio.objects.select_related('servicio_sede', 'servicio_sede__prestador')
+    serializer_class = MedidaSeguridadServicioSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['servicio_sede', 'estado']
+    ordering_fields = ['fecha_creacion', 'fecha_inicio', 'fecha_fin']
+    ordering = ['-fecha_creacion']
+
+
+class SancionServicioViewSet(viewsets.ModelViewSet):
+    """API para sanciones por servicio."""
+
+    queryset = SancionServicio.objects.select_related('servicio_sede', 'servicio_sede__prestador')
+    serializer_class = SancionServicioSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['servicio_sede', 'tipo_sancion', 'estado']
+    ordering_fields = ['fecha_creacion', 'fecha_inicio', 'fecha_fin']
+    ordering = ['-fecha_creacion']
+
+
+class NovedadREPSViewSet(viewsets.ModelViewSet):
+    """API para registrar y gestionar novedades REPS."""
+
+    queryset = NovedadREPS.objects.select_related('datos_prestador', 'sede', 'servicio_sede', 'creado_por')
+    serializer_class = NovedadREPSSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['tipo_novedad', 'subtipo_novedad', 'estado', 'datos_prestador', 'sede', 'servicio_sede']
+    search_fields = ['codigo_novedad', 'descripcion', 'datos_prestador__codigo_reps', 'datos_prestador__nombre_prestador']
+    ordering_fields = ['fecha_creacion', 'fecha_radicacion']
+    ordering = ['-fecha_creacion']
+
+    def perform_create(self, serializer):
+        serializer.save(creado_por=self.request.user)
+
+
+class RequisitoDocumentalViewSet(viewsets.ModelViewSet):
+    """API catálogo de requisitos documentales (Anexo 2)."""
+
+    queryset = RequisitoDocumental.objects.all()
+    serializer_class = RequisitoDocumentalSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['tipo_tramite', 'obligatorio', 'activo']
+    search_fields = ['codigo', 'nombre', 'descripcion']
+    ordering_fields = ['codigo', 'fecha_creacion']
+    ordering = ['codigo']
+
+
+class ChecklistVerificacionViewSet(viewsets.ModelViewSet):
+    """API de checklists documentales por trámite REPS."""
+
+    queryset = ChecklistVerificacion.objects.select_related('novedad', 'servicio_sede', 'responsable').prefetch_related('items')
+    serializer_class = ChecklistVerificacionSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['estado', 'novedad', 'servicio_sede']
+    search_fields = ['codigo_checklist', 'observaciones']
+    ordering_fields = ['fecha_creacion', 'fecha_cierre']
+    ordering = ['-fecha_creacion']
+
+    def perform_create(self, serializer):
+        serializer.save(responsable=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def avance(self, request, pk=None):
+        """Resumen de avance del checklist por ítems cumplidos."""
+        checklist = self.get_object()
+        total = checklist.items.count()
+        cumplidos = checklist.items.filter(cumple=True).count()
+        pendientes = checklist.items.filter(cumple__isnull=True).count()
+        no_cumplen = checklist.items.filter(cumple=False).count()
+        porcentaje = round((cumplidos / total) * 100, 2) if total else 0
+        return Response(
+            {
+                'checklist_id': checklist.id,
+                'codigo_checklist': checklist.codigo_checklist,
+                'total_items': total,
+                'cumplidos': cumplidos,
+                'no_cumplen': no_cumplen,
+                'pendientes': pendientes,
+                'porcentaje_avance': porcentaje,
+            }
+        )
+
+
+class ChecklistItemViewSet(viewsets.ModelViewSet):
+    """API para gestionar ítems del checklist y su resultado de verificación."""
+
+    queryset = ChecklistItem.objects.select_related('checklist', 'requisito', 'verificado_por').prefetch_related('evidencias')
+    serializer_class = ChecklistItemSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['checklist', 'cumple', 'obligatorio']
+    ordering_fields = ['fecha_creacion', 'fecha_verificacion']
+    ordering = ['-fecha_creacion']
+
+    def perform_update(self, serializer):
+        serializer.save(verificado_por=self.request.user)
+
+
+class EvidenciaChecklistViewSet(viewsets.ModelViewSet):
+    """API para cargue de soportes de ítems de checklist."""
+
+    queryset = EvidenciaChecklist.objects.select_related('checklist_item', 'subido_por')
+    serializer_class = EvidenciaChecklistSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['checklist_item', 'tipo']
+    ordering_fields = ['fecha_subida']
+    ordering = ['-fecha_subida']
+
+    def perform_create(self, serializer):
+        serializer.save(subido_por=self.request.user)

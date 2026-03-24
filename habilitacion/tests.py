@@ -6,13 +6,24 @@ Cobertura: Models, Serializers y Views
 """
 
 from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
 from datetime import timedelta
 
-from .models import DatosPrestador, ServicioSede, Autoevaluacion, Cumplimiento
+from .models import (
+    DatosPrestador,
+    ServicioSede,
+    Autoevaluacion,
+    Cumplimiento,
+    NovedadREPS,
+    RequisitoDocumental,
+    ChecklistVerificacion,
+    ChecklistItem,
+    EvidenciaChecklist,
+)
 from companies.models import Company, Headquarters
 from normativity.models import Estandar, Criterio
 
@@ -280,6 +291,163 @@ class CumplimientoModelTests(TestCase):
         self.assertTrue(self.cumplimiento.mejora_vencida())
 
 
+class ChecklistVerificacionModelTests(TestCase):
+    """Tests para generación automática de ítems de checklist."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='validador', password='test123')
+        self.company = Company.objects.create(
+            name='Hospital Checklist',
+            nit='777777777',
+            foundationDate='2020-01-15'
+        )
+        self.headquarters = Headquarters.objects.create(
+            company=self.company,
+            name='Sede Checklist',
+            address='Cra 1 # 1-1'
+        )
+        self.prestador = DatosPrestador.objects.create(
+            headquarters=self.headquarters,
+            codigo_reps='110001237777',
+            nombre_prestador='Hospital Checklist IPS',
+            clase_prestador='IPS',
+        )
+        self.servicio = ServicioSede.objects.create(
+            prestador=self.prestador,
+            codigo_servicio='SVC-CHK-001',
+            nombre_servicio='Consulta Externa',
+            modalidad='AMBULATORIA',
+            complejidad='BAJA',
+        )
+
+    def test_crea_items_desde_requisitos_novedad(self):
+        RequisitoDocumental.objects.create(
+            codigo='NOV-BAS-001',
+            nombre='Requisito novedad 1',
+            tipo_tramite='NOVEDAD',
+            obligatorio=True,
+        )
+        RequisitoDocumental.objects.create(
+            codigo='NOV-BAS-002',
+            nombre='Requisito novedad 2',
+            tipo_tramite='NOVEDAD',
+            obligatorio=False,
+        )
+        RequisitoDocumental.objects.create(
+            codigo='INS-T-001',
+            nombre='Requisito inscripcion',
+            tipo_tramite='INSCRIPCION',
+            obligatorio=True,
+        )
+
+        novedad = NovedadREPS.objects.create(
+            codigo_novedad='NOV-TEST-001',
+            tipo_novedad='SERVICIO',
+            subtipo_novedad='OTRA',
+            datos_prestador=self.prestador,
+            servicio_sede=self.servicio,
+            creado_por=self.user,
+        )
+
+        checklist = ChecklistVerificacion.objects.create(
+            codigo_checklist='CHK-TEST-001',
+            novedad=novedad,
+            servicio_sede=self.servicio,
+            responsable=self.user,
+        )
+
+        self.assertEqual(checklist.items.count(), 2)
+        self.assertEqual(ChecklistItem.objects.filter(checklist=checklist).count(), 2)
+        self.assertTrue(
+            ChecklistItem.objects.filter(checklist=checklist, requisito__codigo='NOV-BAS-001').exists()
+        )
+        self.assertFalse(
+            ChecklistItem.objects.filter(checklist=checklist, requisito__codigo='INS-T-001').exists()
+        )
+
+    def test_apertura_modalidad_incluye_visita_certificacion_y_base_novedad(self):
+        RequisitoDocumental.objects.create(
+            codigo='NOV-BAS-001',
+            nombre='Base novedad',
+            tipo_tramite='NOVEDAD',
+            obligatorio=True,
+        )
+        RequisitoDocumental.objects.create(
+            codigo='VC-001',
+            nombre='Visita certificacion',
+            tipo_tramite='VISITA_CERTIFICACION',
+            obligatorio=True,
+        )
+
+        novedad = NovedadREPS.objects.create(
+            codigo_novedad='NOV-TEST-002',
+            tipo_novedad='SERVICIO',
+            subtipo_novedad='APERTURA_MODALIDAD',
+            datos_prestador=self.prestador,
+            servicio_sede=self.servicio,
+            creado_por=self.user,
+        )
+
+        checklist = ChecklistVerificacion.objects.create(
+            codigo_checklist='CHK-TEST-002',
+            novedad=novedad,
+            servicio_sede=self.servicio,
+            responsable=self.user,
+        )
+
+        self.assertTrue(
+            ChecklistItem.objects.filter(checklist=checklist, requisito__codigo='NOV-BAS-001').exists()
+        )
+        self.assertTrue(
+            ChecklistItem.objects.filter(checklist=checklist, requisito__codigo='VC-001').exists()
+        )
+
+    def test_cambio_contacto_filtra_requisitos_especificos(self):
+        RequisitoDocumental.objects.create(
+            codigo='NOV-BAS-001',
+            nombre='Base novedad',
+            tipo_tramite='NOVEDAD',
+            obligatorio=True,
+        )
+        RequisitoDocumental.objects.create(
+            codigo='NOV-CON-001',
+            nombre='Novedad contacto',
+            tipo_tramite='NOVEDAD',
+            obligatorio=True,
+        )
+        RequisitoDocumental.objects.create(
+            codigo='NOV-TS-001',
+            nombre='Novedad traslado',
+            tipo_tramite='NOVEDAD',
+            obligatorio=True,
+        )
+
+        novedad = NovedadREPS.objects.create(
+            codigo_novedad='NOV-TEST-003',
+            tipo_novedad='SEDE',
+            subtipo_novedad='CAMBIO_CONTACTO',
+            datos_prestador=self.prestador,
+            sede=self.headquarters,
+            creado_por=self.user,
+        )
+
+        checklist = ChecklistVerificacion.objects.create(
+            codigo_checklist='CHK-TEST-003',
+            novedad=novedad,
+            responsable=self.user,
+        )
+
+        self.assertTrue(
+            ChecklistItem.objects.filter(checklist=checklist, requisito__codigo='NOV-BAS-001').exists()
+        )
+        self.assertTrue(
+            ChecklistItem.objects.filter(checklist=checklist, requisito__codigo='NOV-CON-001').exists()
+        )
+        self.assertFalse(
+            ChecklistItem.objects.filter(checklist=checklist, requisito__codigo='NOV-TS-001').exists()
+        )
+
+
 class DatosPrestadorAPITests(APITestCase):
     """Tests para endpoints de DatosPrestador"""
     
@@ -522,7 +690,7 @@ class CumplimientoAPITests(APITestCase):
         
         response = self.client.get('/api/habilitacion/cumplimientos/sin_cumplir/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreater(response.data['count'], 0)
+        self.assertGreater(len(response.data), 0)
     
     def test_mejoras_vencidas_action(self):
         """Verificar acción mejoras_vencidas"""
@@ -543,7 +711,166 @@ class CumplimientoAPITests(APITestCase):
         
         response = self.client.get('/api/habilitacion/cumplimientos/mejoras_vencidas/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreater(response.data['count'], 0)
+        self.assertGreater(len(response.data), 0)
+
+    def test_con_plan_mejora_action(self):
+        """Verificar acción con_plan_mejora"""
+        criterio2 = Criterio.objects.create(
+            estandar=self.estandar,
+            codigo='7.5',
+            nombre='Seguimiento mejora'
+        )
+        Cumplimiento.objects.create(
+            autoevaluacion=self.autoevaluacion,
+            servicio_sede=self.servicio,
+            criterio=criterio2,
+            cumple='NO_CUMPLE',
+            plan_mejora='Plan formal'
+        )
+
+        response = self.client.get('/api/habilitacion/cumplimientos/con_plan_mejora/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreater(len(response.data), 0)
+
+
+class NuevosEndpointsAPITests(APITestCase):
+    """Pruebas de regresión para novedad/checklist/evidencias y acciones de mejora."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='apiuser', password='test123')
+        self.client.force_authenticate(user=self.user)
+
+        self.company = Company.objects.create(
+            name='Hospital API',
+            nit='999999999',
+            foundationDate='2020-01-15'
+        )
+        self.headquarters = Headquarters.objects.create(
+            company=self.company,
+            name='Sede API',
+            address='Cra 10 # 10-10'
+        )
+        self.prestador = DatosPrestador.objects.create(
+            headquarters=self.headquarters,
+            codigo_reps='110001239999',
+            nombre_prestador='Hospital API IPS',
+            clase_prestador='IPS',
+        )
+        self.servicio = ServicioSede.objects.create(
+            prestador=self.prestador,
+            codigo_servicio='SVC-API-001',
+            nombre_servicio='Consulta General',
+            modalidad='AMBULATORIA',
+            complejidad='BAJA',
+        )
+
+        RequisitoDocumental.objects.create(
+            codigo='NOV-BAS-001',
+            nombre='Base novedad',
+            tipo_tramite='NOVEDAD',
+            obligatorio=True,
+        )
+        RequisitoDocumental.objects.create(
+            codigo='NOV-CON-001',
+            nombre='Cambio contacto',
+            tipo_tramite='NOVEDAD',
+            obligatorio=True,
+        )
+        RequisitoDocumental.objects.create(
+            codigo='VP-001',
+            nombre='Visita previa',
+            tipo_tramite='VISITA_PREVIA',
+            obligatorio=True,
+        )
+
+    def test_novedad_create_checklist_avance_and_evidencia_upload(self):
+        payload_novedad = {
+            'codigo_novedad': 'NOV-API-001',
+            'tipo_novedad': 'SEDE',
+            'subtipo_novedad': 'CAMBIO_CONTACTO',
+            'estado': 'BORRADOR',
+            'datos_prestador': self.prestador.id,
+            'sede': self.headquarters.id,
+            'servicio_sede': self.servicio.id,
+            'requiere_visita_previa': True,
+            'descripcion': 'Cambio de contacto y visita previa',
+        }
+        resp_novedad = self.client.post('/api/habilitacion/novedades-reps/', payload_novedad)
+        self.assertEqual(resp_novedad.status_code, status.HTTP_201_CREATED)
+        novedad_id = resp_novedad.data['id']
+
+        payload_checklist = {
+            'codigo_checklist': 'CHK-API-001',
+            'estado': 'BORRADOR',
+            'novedad': novedad_id,
+            'servicio_sede': self.servicio.id,
+            'observaciones': 'Checklist API',
+        }
+        resp_checklist = self.client.post('/api/habilitacion/checklists-verificacion/', payload_checklist)
+        self.assertEqual(resp_checklist.status_code, status.HTTP_201_CREATED)
+        checklist_id = resp_checklist.data['id']
+
+        checklist = ChecklistVerificacion.objects.get(id=checklist_id)
+        self.assertGreaterEqual(checklist.items.count(), 2)
+
+        resp_avance = self.client.get(f'/api/habilitacion/checklists-verificacion/{checklist_id}/avance/')
+        self.assertEqual(resp_avance.status_code, status.HTTP_200_OK)
+        self.assertIn('porcentaje_avance', resp_avance.data)
+
+        item = checklist.items.first()
+        self.assertIsNotNone(item)
+
+        resp_item_update = self.client.patch(
+            f'/api/habilitacion/checklist-items/{item.id}/',
+            {'cumple': True, 'observaciones': 'Cumple con soporte'},
+            format='json'
+        )
+        self.assertEqual(resp_item_update.status_code, status.HTTP_200_OK)
+        item.refresh_from_db()
+        self.assertEqual(item.verificado_por, self.user)
+
+        archivo_pdf = SimpleUploadedFile('evidencia.pdf', b'%PDF-1.4 evidencia', content_type='application/pdf')
+        resp_evidencia = self.client.post(
+            '/api/habilitacion/evidencias-checklist/',
+            {
+                'checklist_item': item.id,
+                'tipo': 'DOCUMENTO',
+                'archivo': archivo_pdf,
+            },
+            format='multipart'
+        )
+        self.assertEqual(resp_evidencia.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(EvidenciaChecklist.objects.filter(checklist_item=item).count(), 1)
+
+    def test_evidencia_rechaza_extension_no_permitida(self):
+        novedad = NovedadREPS.objects.create(
+            codigo_novedad='NOV-API-002',
+            tipo_novedad='SERVICIO',
+            subtipo_novedad='OTRA',
+            datos_prestador=self.prestador,
+            servicio_sede=self.servicio,
+            creado_por=self.user,
+        )
+        checklist = ChecklistVerificacion.objects.create(
+            codigo_checklist='CHK-API-002',
+            novedad=novedad,
+            servicio_sede=self.servicio,
+            responsable=self.user,
+        )
+        item = checklist.items.first()
+
+        archivo_invalido = SimpleUploadedFile('malicioso.exe', b'MZP', content_type='application/octet-stream')
+        resp = self.client.post(
+            '/api/habilitacion/evidencias-checklist/',
+            {
+                'checklist_item': item.id,
+                'tipo': 'DOCUMENTO',
+                'archivo': archivo_invalido,
+            },
+            format='multipart'
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class IntegrationTests(APITestCase):
