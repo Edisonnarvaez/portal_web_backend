@@ -8,8 +8,8 @@ from .models.process import Process
 # Configurar el modelo Company en el admin
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'nit', 'status')
-    search_fields = ('name', 'nit')
+    list_display = ('id', 'name', 'number_document', 'status')
+    search_fields = ('name', 'number_document')
     list_filter = ('status',)
     ordering = ('id',)
 
@@ -24,7 +24,18 @@ class DepartmentAdmin(admin.ModelAdmin):
 # Configurar el modelo Headquarters en el admin
 @admin.register(Headquarters)
 class HeadquartersAdmin(admin.ModelAdmin):
-    list_display = ('id', 'habilitationCode', 'name', 'company', 'departament', 'city', 'address', 'habilitationDate', 'closingDate', 'status')
+    list_display = (
+        'id',
+        'habilitationCode',
+        'name',
+        'company',
+        'region',
+        'municipality',
+        'address',
+        'creationDate',
+        'updateDate',
+        'status',
+    )
     search_fields = ('habilitationCode', 'name', 'company__name')
     list_filter = ('status',)
     ordering = ('id',)

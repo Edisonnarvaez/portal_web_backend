@@ -45,6 +45,7 @@ class Documento(models.Model):
     )
     codigo_documento = models.CharField(max_length=50)
     nombre_documento = models.CharField(max_length=255)
+    descripcion_documento = models.CharField(max_length=500, blank=True, null=True)
     proceso = models.ForeignKey(Process, on_delete=models.PROTECT)
     tipo_documento = models.CharField(max_length=3, choices=TIPOS_DOCUMENTO)
     version = models.IntegerField(validators=[validar_version])
@@ -109,6 +110,7 @@ class Documento(models.Model):
             documento_padre=self,
             codigo_documento=self.codigo_documento,
             nombre_documento=datos_actualizados.get('nombre_documento', self.nombre_documento),
+            descripcion_documento=datos_actualizados.get('descripcion_documento', self.descripcion_documento),
             proceso=datos_actualizados.get('proceso', self.proceso),
             tipo_documento=datos_actualizados.get('tipo_documento', self.tipo_documento),
             version=self.version + 1,

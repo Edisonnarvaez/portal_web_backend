@@ -1,6 +1,6 @@
 from django.db import models
 
-from companies.models import Region, Municipality
+from .parameters import Region, Municipality
 
 class Company(models.Model):
     CLASS_HEALTHCARE_ENTITY_CHOICES = [
