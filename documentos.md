@@ -205,11 +205,11 @@ http://localhost:8000/api/habilitacion/
 | PUT | `/api/habilitacion/prestadores/{id}/` | Actualizar prestador |
 | PATCH | `/api/habilitacion/prestadores/{id}/` | Actualización parcial |
 | DELETE | `/api/habilitacion/prestadores/{id}/` | Eliminar prestador |
-| GET | `/api/habilitacion/prestadores/proximos_a_vencer/` | Próximos a vencer (90 días) |
+| GET | `/api/habilitacion/prestadores/proximos-a-vencer/` | Próximos a vencer (90 días) |
 | GET | `/api/habilitacion/prestadores/vencidas/` | Habilitaciones vencidas |
 | GET | `/api/habilitacion/prestadores/{id}/servicios/` | Servicios del prestador |
 | GET | `/api/habilitacion/prestadores/{id}/autoevaluaciones/` | Historial de autoevaluaciones |
-| POST | `/api/habilitacion/prestadores/{id}/iniciar_renovacion/` | Iniciar proceso de renovación |
+| POST | `/api/habilitacion/prestadores/{id}/iniciar-renovacion/` | Iniciar proceso de renovación |
 
 #### Campos de respuesta - Listado
 
@@ -259,8 +259,8 @@ http://localhost:8000/api/habilitacion/
 | PUT | `/api/habilitacion/servicios/{id}/` | Actualizar servicio |
 | PATCH | `/api/habilitacion/servicios/{id}/` | Actualización parcial |
 | DELETE | `/api/habilitacion/servicios/{id}/` | Eliminar servicio |
-| GET | `/api/habilitacion/servicios/proximos_a_vencer/` | Próximos a vencer |
-| GET | `/api/habilitacion/servicios/por_complejidad/?complejidad=ALTA` | Filtrar por complejidad |
+| GET | `/api/habilitacion/servicios/proximos-a-vencer/` | Próximos a vencer |
+| GET | `/api/habilitacion/servicios/por-complejidad/?complejidad=ALTA` | Filtrar por complejidad |
 | GET | `/api/habilitacion/servicios/{id}/cumplimientos/` | Cumplimientos del servicio |
 
 #### Campos requeridos para crear
@@ -289,7 +289,7 @@ http://localhost:8000/api/habilitacion/
 | PUT | `/api/habilitacion/autoevaluaciones/{id}/` | Actualizar autoevaluación |
 | PATCH | `/api/habilitacion/autoevaluaciones/{id}/` | Actualización parcial |
 | DELETE | `/api/habilitacion/autoevaluaciones/{id}/` | Eliminar autoevaluación |
-| GET | `/api/habilitacion/autoevaluaciones/por_completar/` | En BORRADOR o EN_CURSO |
+| GET | `/api/habilitacion/autoevaluaciones/por-completar/` | En BORRADOR o EN_CURSO |
 | GET | `/api/habilitacion/autoevaluaciones/{id}/resumen/` | Resumen estadístico |
 | POST | `/api/habilitacion/autoevaluaciones/{id}/validar/` | Cambiar estado a VALIDADA |
 | POST | `/api/habilitacion/autoevaluaciones/{id}/duplicar/` | Crear nueva versión |
@@ -373,9 +373,9 @@ http://localhost:8000/api/habilitacion/
 | PUT | `/api/habilitacion/cumplimientos/{id}/` | Actualizar cumplimiento |
 | PATCH | `/api/habilitacion/cumplimientos/{id}/` | Actualización parcial |
 | DELETE | `/api/habilitacion/cumplimientos/{id}/` | Eliminar cumplimiento |
-| GET | `/api/habilitacion/cumplimientos/sin_cumplir/` | Items con cumple=NO_CUMPLE |
-| GET | `/api/habilitacion/cumplimientos/con_plan_mejora/` | Items con plan de mejora |
-| GET | `/api/habilitacion/cumplimientos/mejoras_vencidas/` | Mejoras vencidas |
+| GET | `/api/habilitacion/cumplimientos/sin-cumplir/` | Items con cumple=NO_CUMPLE |
+| GET | `/api/habilitacion/cumplimientos/con-plan-mejora/` | Items con plan de mejora |
+| GET | `/api/habilitacion/cumplimientos/mejoras-vencidas/` | Mejoras vencidas |
 
 #### Campos de respuesta - Listado
 
@@ -460,7 +460,7 @@ Authorization: Bearer eyJ...
 #### Refresh Token
 
 ```
-POST /api/users/token/refresh/
+POST /api/token/refresh/
 {
     "refresh": "eyJ..."
 }
@@ -505,7 +505,7 @@ POST /api/users/token/refresh/
 ### Flujo 3: Renovación de Habilitación
 
 ```
-1. POST /api/habilitacion/prestadores/{id}/iniciar_renovacion/
+1. POST /api/habilitacion/prestadores/{id}/iniciar-renovacion/
    → Inicia proceso con nueva autoevaluación
 
 2. GET /api/habilitacion/autoevaluaciones/{id}/resumen/
@@ -518,19 +518,19 @@ POST /api/users/token/refresh/
 ### Flujo 4: Monitoreo y Seguimiento
 
 ```
-1. GET /api/habilitacion/prestadores/proximos_a_vencer/
+1. GET /api/habilitacion/prestadores/proximos-a-vencer/
    → Prestadores con habilitación próxima a vencer (90 días)
 
 2. GET /api/habilitacion/prestadores/vencidas/
    → Habilitaciones ya vencidas
 
-3. GET /api/habilitacion/servicios/proximos_a_vencer/
+3. GET /api/habilitacion/servicios/proximos-a-vencer/
    → Servicios por vencer
 
-4. GET /api/habilitacion/cumplimientos/sin_cumplir/
+4. GET /api/habilitacion/cumplimientos/sin-cumplir/
    → Items que no cumplen
 
-5. GET /api/habilitacion/cumplimientos/mejoras_vencidas/
+5. GET /api/habilitacion/cumplimientos/mejoras-vencidas/
    → Mejoras con fecha vencida
 ```
 
@@ -696,8 +696,8 @@ Content-Type: application/json
 
 ### Dashboard de Habilitación
 - Resumen de prestadores por estado
-- Alertas de vencimiento (usar `/prestadores/proximos_a_vencer/`)
-- Servicios por complejidad (usar `/servicios/por_complejidad/`)
+- Alertas de vencimiento (usar `/prestadores/proximos-a-vencer/`)
+- Servicios por complejidad (usar `/servicios/por-complejidad/`)
 
 ### Gestión de Prestador
 - Lista de prestadores con filtros por estado y clase
