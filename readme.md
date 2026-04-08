@@ -2,7 +2,7 @@
 
 ## Descripción del Proyecto
 
-Portal Web Backend es un sistema de gestión integral desarrollado en Django que proporciona una API REST completa para la gestión de proveedores, facturación electrónica, auditorías, indicadores y procesos organizacionales. El sistema está diseñado para empresas que requieren un control detallado de sus operaciones comerciales y administrativas.
+Portal Web Backend es un sistema de gestión integral desarrollado en Django que proporciona una API REST completa para la gestión de auditorías, indicadores y procesos organizacionales. El sistema está diseñado para empresas del sector salud principalmente IPS que requieran de un control de calidad y habilitacion sistematizado.
 
 ### Características Principales
 
