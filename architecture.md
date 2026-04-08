@@ -4,6 +4,29 @@
 
 Este documento describe la arquitectura completa del Portal Web Backend, incluyendo la estructura de componentes, flujo de datos, patrones de diseño y diagramas técnicos. El sistema está construido con Django siguiendo principios de arquitectura limpia y patrones de microservicios modulares.
 
+## Estado Actual de APIs (Sincronizado con Código)
+
+La exposición real de API está centralizada en `backend/urls.py` y delegada por app mediante `include(...)`.
+
+### Prefijos de API por App
+
+- `/api/users/` -> autenticación, 2FA, usuarios y recuperación de contraseña
+- `/api/companies/` -> empresas, departamentos, sedes, procesos y catálogos geográficos
+- `/api/processes/` -> gestión documental de procesos
+- `/api/main/` -> funcionarios, contenidos, eventos, felicitaciones y reconocimientos
+- `/api/indicators/` -> indicadores y resultados
+- `/api/normativity/` -> estándares, criterios y documentos normativos
+- `/api/habilitacion/` -> prestadores, servicios, autoevaluaciones, cumplimientos y trazabilidad REPS
+- `/api/soportes/` -> catálogo y repositorio de soportes documentales
+- `/api/mejoras/` -> planes de mejora, hallazgos y soportes de planes
+- `/api/audit/` -> auditorías, hallazgos de auditoría, actas, programas y catálogos
+
+### Endpoints Canónicos
+
+Para el inventario completo y actualizado de endpoints (CRUD + acciones personalizadas), ver:
+
+- `ENDPOINTS_API.md`
+
 ---
 
 ## 📐 Arquitectura de Alto Nivel

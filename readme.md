@@ -64,6 +64,7 @@ portal_web_backend/
 │   └── profile_pics/           # Fotos de perfil
 ├── staticfiles/                # Archivos estáticos
 ├── documentos.md               # 📖 Guía completa para frontend
+├── ENDPOINTS_API.md            # 📌 Inventario canónico de endpoints
 ├── architecture.md             # 🏗️ Arquitectura técnica del sistema
 ├── readme.md                   # Este archivo
 ├── requirements.txt            # Dependencias del proyecto
@@ -208,7 +209,7 @@ POSTGRES_PORT=5432
 - 7 Estándares: Talento Humano, Infraestructura, Dotación, Procesos, Recurso Sanguíneo, Gestión Integral, Seguridad
 - 21 Criterios de evaluación (3 por estándar)
 - Documentos normativos de referencia
-- **Endpoints**: `/api/normativity/estandares/`, `/api/normativity/criterios/`, `/api/normativity/documentos/`
+- **Endpoints**: `/api/normativity/estandares/`, `/api/normativity/criterios/`, `/api/normativity/documentos-normativos/`
 
 ### 6. Habilitación de Servicios (`habilitacion/`)
 
@@ -262,11 +263,11 @@ PATCH  /api/habilitacion/prestadores/{id}/         # Actualizar parcial
 DELETE /api/habilitacion/prestadores/{id}/         # Eliminar
 
 # Acciones personalizadas
-GET    /api/habilitacion/prestadores/proximos_a_vencer/
+GET    /api/habilitacion/prestadores/proximos-a-vencer/
 GET    /api/habilitacion/prestadores/vencidas/
 GET    /api/habilitacion/prestadores/{id}/servicios/
 GET    /api/habilitacion/prestadores/{id}/autoevaluaciones/
-POST   /api/habilitacion/prestadores/{id}/iniciar_renovacion/
+POST   /api/habilitacion/prestadores/{id}/iniciar-renovacion/
 ```
 
 **Servicios - ServicioSede**
@@ -279,8 +280,8 @@ PATCH  /api/habilitacion/servicios/{id}/           # Parcial
 DELETE /api/habilitacion/servicios/{id}/           # Eliminar
 
 # Acciones personalizadas
-GET    /api/habilitacion/servicios/proximos_a_vencer/
-GET    /api/habilitacion/servicios/por_complejidad/?complejidad=ALTA
+GET    /api/habilitacion/servicios/proximos-a-vencer/
+GET    /api/habilitacion/servicios/por-complejidad/?complejidad=ALTA
 GET    /api/habilitacion/servicios/{id}/cumplimientos/
 ```
 
@@ -294,7 +295,7 @@ PATCH  /api/habilitacion/autoevaluaciones/{id}/    # Parcial
 DELETE /api/habilitacion/autoevaluaciones/{id}/    # Eliminar
 
 # Acciones personalizadas
-GET    /api/habilitacion/autoevaluaciones/por_completar/
+GET    /api/habilitacion/autoevaluaciones/por-completar/
 GET    /api/habilitacion/autoevaluaciones/{id}/resumen/
 POST   /api/habilitacion/autoevaluaciones/{id}/validar/
 POST   /api/habilitacion/autoevaluaciones/{id}/duplicar/
@@ -310,9 +311,9 @@ PATCH  /api/habilitacion/cumplimientos/{id}/       # Parcial
 DELETE /api/habilitacion/cumplimientos/{id}/       # Eliminar
 
 # Acciones personalizadas
-GET    /api/habilitacion/cumplimientos/sin_cumplir/
-GET    /api/habilitacion/cumplimientos/con_plan_mejora/
-GET    /api/habilitacion/cumplimientos/mejoras_vencidas/
+GET    /api/habilitacion/cumplimientos/sin-cumplir/
+GET    /api/habilitacion/cumplimientos/con-plan-mejora/
+GET    /api/habilitacion/cumplimientos/mejoras-vencidas/
 ```
 
 #### **Características Avanzadas**:
@@ -428,7 +429,7 @@ PUT    /api/audit/auditorias/{id}/                   # Actualizar
 POST   /api/audit/auditorias/{id}/cambiar-fase/      # Transición de fase
 GET    /api/audit/auditorias/{id}/equipo/            # Ver equipo
 POST   /api/audit/auditorias/{id}/equipo/            # Agregar miembro
-DELETE /api/audit/auditorias/{id}/eliminar-miembro/  # Quitar miembro
+DELETE /api/audit/auditorias/{id}/equipo/{miembro_id}/  # Quitar miembro
 GET    /api/audit/auditorias/{id}/actas/             # Actas de la auditoría
 POST   /api/audit/auditorias/{id}/actas/             # Crear acta
 GET    /api/audit/auditorias/resumen/                # Estadísticas generales
@@ -447,108 +448,25 @@ GET/POST        /api/audit/programas/                # CRUD programas
 
 ## API REST Endpoints
 
-### Autenticación
-```
-POST /api/token/                    # Obtener token JWT
-POST /api/token/refresh/            # Refrescar token
-```
+El inventario completo y actualizado de endpoints vive en:
 
-### Usuarios
-```
-POST /api/users/register/           # Registro de usuario
-POST /api/users/login/              # Inicio de sesión
-POST /api/users/logout/             # Cerrar sesión
-POST /api/users/reset-password/     # Restablecer contraseña
-```
+- `ENDPOINTS_API.md`
 
-### Empresas
-```
-GET    /api/companies/companies/    # Listar empresas
-POST   /api/companies/companies/    # Crear empresa
-GET    /api/companies/departments/  # Listar departamentos
-```
+Resumen de prefijos activos:
 
-### Indicadores
-```
-GET    /api/indicators/indicators/  # Listar indicadores
-POST   /api/indicators/results/     # Crear resultado
-```
+- `/api/token/` y `/api/token/refresh/` (JWT)
+- `/api/users/`
+- `/api/companies/`
+- `/api/processes/`
+- `/api/main/`
+- `/api/indicators/`
+- `/api/normativity/`
+- `/api/habilitacion/`
+- `/api/soportes/`
+- `/api/mejoras/`
+- `/api/audit/`
 
-### Normativity (Estándares Resolución 3100)
-```
-GET    /api/normativity/estandares/           # Listar estándares
-GET    /api/normativity/estandares/{codigo}/  # Detalle estándar
-GET    /api/normativity/estandares/todos/     # Acción: todos los estándares
-GET    /api/normativity/criterios/            # Listar criterios
-GET    /api/normativity/criterios/mandatorios/ # Acción: criterios obligatorios
-GET    /api/normativity/documentos/           # Listar documentos normativos
-```
-
-### Habilitación de Servicios (SUH)
-```
-# Prestadores
-GET    /api/habilitacion/prestadores/                 # Listar
-POST   /api/habilitacion/prestadores/                 # Crear
-GET    /api/habilitacion/prestadores/{id}/            # Detalle
-GET    /api/habilitacion/prestadores/proximos_a_vencer/ # Próximos a vencer
-GET    /api/habilitacion/prestadores/{id}/servicios/  # Servicios del prestador
-
-# Servicios por Sede
-GET    /api/habilitacion/servicios/              # Listar
-POST   /api/habilitacion/servicios/              # Crear
-GET    /api/habilitacion/servicios/proximos_a_vencer/ # Próximos a vencer
-
-# Autoevaluaciones
-GET    /api/habilitacion/autoevaluaciones/                # Listar
-POST   /api/habilitacion/autoevaluaciones/                # Crear
-GET    /api/habilitacion/autoevaluaciones/{id}/resumen/   # Resumen completo
-POST   /api/habilitacion/autoevaluaciones/{id}/validar/   # Validar evaluación
-POST   /api/habilitacion/autoevaluaciones/{id}/duplicar/  # Duplicar para nuevo período
-
-# Cumplimientos (Criterios Evaluados)
-GET    /api/habilitacion/cumplimientos/              # Listar
-POST   /api/habilitacion/cumplimientos/              # Crear
-GET    /api/habilitacion/cumplimientos/sin_cumplir/  # No conformidades
-GET    /api/habilitacion/cumplimientos/con_plan_mejora/ # Con plan de mejora
-GET    /api/habilitacion/cumplimientos/mejoras_vencidas/ # Mejoras vencidas
-```
-
-### Planes de Mejora
-```
-GET    /api/mejoras/planes-mejora/                    # Listar
-POST   /api/mejoras/planes-mejora/                    # Crear
-GET    /api/mejoras/planes-mejora/{id}/               # Detalle
-GET    /api/mejoras/planes-mejora/vencidos/           # Vencidos
-GET    /api/mejoras/planes-mejora/proximos-vencer/    # Próximos a vencer
-GET    /api/mejoras/planes-mejora/resumen/            # Estadísticas
-GET    /api/mejoras/planes-mejora/por-origen/         # Por origen
-GET    /api/mejoras/planes-mejora/{id}/soportes/      # Listar soportes
-POST   /api/mejoras/planes-mejora/{id}/soportes/      # Subir soporte (multipart)
-DELETE /api/mejoras/planes-mejora/{id}/soportes/{soporte_id}/ # Eliminar soporte
-GET    /api/mejoras/hallazgos/                        # Listar hallazgos
-POST   /api/mejoras/hallazgos/                        # Crear hallazgo
-GET    /api/mejoras/hallazgos/estadisticas/           # Estadísticas
-GET    /api/mejoras/hallazgos/sin-plan/               # Sin plan asignado
-```
-
-### Auditorías
-```
-GET/POST   /api/audit/tipos/                         # Tipos de auditoría
-GET/POST   /api/audit/entidades/                     # Entidades auditoras
-GET    /api/audit/auditorias/                        # Listar
-POST   /api/audit/auditorias/                        # Crear
-GET    /api/audit/auditorias/{id}/                   # Detalle
-POST   /api/audit/auditorias/{id}/cambiar-fase/      # Transición de fase
-GET    /api/audit/auditorias/{id}/equipo/            # Ver equipo
-POST   /api/audit/auditorias/{id}/equipo/            # Agregar miembro
-GET    /api/audit/auditorias/{id}/actas/             # Actas
-GET    /api/audit/auditorias/resumen/                # Estadísticas
-GET    /api/audit/auditorias/proximas/               # Próximas
-GET    /api/audit/auditorias/por-fase/               # Por fase
-GET/POST   /api/audit/hallazgos/                     # CRUD hallazgos
-GET/POST   /api/audit/actas/                         # CRUD actas
-GET/POST   /api/audit/programas/                     # CRUD programas
-```
+Nota: este README mantiene una vista resumida; el detalle canónico (incluyendo acciones personalizadas por ViewSet) se mantiene en `ENDPOINTS_API.md` para evitar inconsistencias.
 
 ## Documentación y Recursos
 
@@ -572,7 +490,13 @@ GET/POST   /api/audit/programas/                     # CRUD programas
    - Estrategias de escalabilidad y performance
    - Decisiones de arquitectura (ADRs)
 
-3. **Portal_Habilitacion_API_completo.postman_collection.json**
+3. **ENDPOINTS_API.md** - Inventario Canónico de Endpoints
+   - Listado consolidado por app
+   - Recursos CRUD por router
+   - Acciones personalizadas (`@action`) por ViewSet
+   - Rutas exactas para integración frontend/Postman
+
+4. **Portal_Habilitacion_API_completo.postman_collection.json**
    - Colección de Postman con 40+ ejemplos
    - Todos los endpoints documentados
    - Variables preconfiguradas
