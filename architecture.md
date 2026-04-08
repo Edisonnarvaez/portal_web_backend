@@ -1,164 +1,260 @@
 # Arquitectura del Sistema - Portal Web Backend
 
-## Objetivo
+## Proposito del Documento
 
-Este documento describe la arquitectura real implementada en el repositorio, con foco en lo que existe y funciona actualmente.
-No documenta componentes hipotéticos o planeados como si ya estuvieran operativos.
+Este documento describe la arquitectura real implementada en el backend.
+Esta pensado para onboarding tecnico, mantenimiento evolutivo, analisis de impactos y soporte operativo.
 
-## Estado Arquitectónico Actual
+Alcance:
 
-- Tipo de sistema: monolito Django (no microservicios)
-- Exposición API: Django REST Framework con routers y APIViews
-- Autenticación principal: JWT (SimpleJWT)
-- 2FA: flujo habilitado en app users
-- Base de datos activa por defecto: SQLite
-- Cache activa por defecto: memoria local (LocMemCache)
-- Servido de estáticos: WhiteNoise
-- Servidor de ejecución: runserver (desarrollo) y Waitress (script local)
+- Componentes reales en codigo
+- Flujos tecnicos principales
+- Relaciones entre apps
+- Convenciones de implementacion
+- Operacion local y despliegue
+- Riesgos y deuda tecnica observable
 
-## Vista de Alto Nivel
+No se documentan como "activos" componentes planeados que no esten implementados.
+
+## 1. Contexto General
+
+Portal Web Backend es una API REST construida con Django + DRF para soportar procesos de calidad y cumplimiento en organizaciones del sector salud.
+El dominio esta dividido en modulos por responsabilidad de negocio:
+
+- Gestion organizacional (`users`, `companies`, `main`)
+- Gestion documental (`processes`, `soportes`)
+- Cumplimiento normativo y habilitacion (`normativity`, `habilitacion`)
+- Seguimiento de mejora y auditoria (`mejoras`, `audit`)
+- Indicadores (`indicators`)
+
+## 2. Estilo Arquitectonico
+
+### 2.1 Tipo de arquitectura
+
+- Monolito modular Django
+- API REST en una sola aplicacion desplegable
+- Separacion por apps de Django (bounded contexts ligeros)
+
+### 2.2 Implicaciones del estilo
+
+Ventajas actuales:
+
+- Baja friccion para cambios transversales
+- Desarrollo y depuracion local simples
+- Reuso natural de modelo de datos entre modulos
+
+Trade-offs:
+
+- Acoplamiento entre apps por FK cruzadas
+- Riesgo de crecimiento del monolito si no se controla frontera de modulos
+- Cambios de alto impacto requieren pruebas de regresion mas amplias
+
+## 3. Stack Tecnologico Verificado
+
+Runtime y framework:
+
+- Python 3.12.x (entorno local)
+- Django 5.2.2
+- Django REST Framework 3.16.0
+- SimpleJWT 5.5.0
+
+Infraestructura de aplicacion:
+
+- WhiteNoise (estaticos)
+- django-cors-headers
+- django-filter
+- Waitress (arranque alterno local)
+
+Persistencia y cache:
+
+- SQLite activo por defecto
+- PostgreSQL disponible como configuracion alternativa (comentada)
+- LocMemCache para cache temporal
+
+Soporte funcional:
+
+- SMTP Gmail para notificaciones por correo
+- pyotp para 2FA
+
+## 4. Vista de Componentes
 
 ```mermaid
 graph TD
-    Client[Frontend / API Client]
-    Django[Django Monolito]
-    DRF[DRF ViewSets y APIViews]
-    Auth[JWT + 2FA users]
-    DB[(SQLite por defecto)]
-    Cache[(LocMemCache)]
-    Media[(media/ archivos)]
-    SMTP[SMTP Gmail]
+    FE[Frontend / API Client]
+    DJ[Django Monolito]
+    API[DRF API Layer]
+    AUTH[JWT + 2FA]
+    APPS[Apps de Dominio]
+    DB[(SQLite)]
+    CACHE[(LocMemCache)]
+    MEDIA[(media/)]
+    SMTP[SMTP]
 
-    Client --> Django
-    Django --> DRF
-    DRF --> Auth
-    DRF --> DB
-    Auth --> Cache
-    Django --> Media
-    Django --> SMTP
+    FE --> DJ
+    DJ --> API
+    API --> AUTH
+    API --> APPS
+    APPS --> DB
+    AUTH --> CACHE
+    APPS --> MEDIA
+    APPS --> SMTP
 ```
 
-## Estructura de Aplicaciones
+## 5. Capas de la Aplicacion
 
-Aplicaciones instaladas en settings:
+### 5.1 Capa de entrada
 
-- users
-- companies
-- processes
-- main
-- indicators
-- normativity
-- habilitacion
-- soportes
-- mejoras
-- audit
+- `backend/urls.py` centraliza prefijos
+- Routers DRF por app en `*/urls.py`
+- Endpoints APIView puntuales (principalmente en `users`)
 
-## Enrutamiento API Real
+### 5.2 Capa de API
 
-Prefijos montados desde backend/urls.py:
+- `ModelViewSet` como patron dominante de CRUD
+- `@action` para operaciones de negocio no CRUD
+- `serializers.py` para validacion/shape de payload
+- Filtros con `django-filter`, busqueda y ordenamiento
 
-- /api/users/
-- /api/companies/
-- /api/processes/
-- /api/main/
-- /api/indicators/
-- /api/normativity/
-- /api/habilitacion/
-- /api/soportes/
-- /api/mejoras/
-- /api/audit/
+### 5.3 Capa de dominio y datos
 
-Endpoints globales:
+- Modelos Django ORM por app
+- Relaciones FK/M2M entre modulos
+- Managers y metodos de modelo para reglas especificas
 
-- POST /api/token/
-- POST /api/token/refresh/
+### 5.4 Capa de infraestructura
 
-Inventario detallado y canónico:
+- Configuracion central en `backend/settings.py`
+- Static/media en filesystem
+- Email backend SMTP
+- Cache local en memoria
 
-- ENDPOINTS_API.md
+## 6. Enrutamiento y Superficie API
 
-## Módulos y Responsabilidades
+### 6.1 Endpoints globales
 
-### users
+- `POST /api/token/`
+- `POST /api/token/refresh/`
+- `admin/`
 
-- Login JWT
-- Verificación OTP
-- Activación/desactivación 2FA
-- Recuperación y cambio de contraseña
-- Consulta/edición de usuario actual
-- Gestión de roles
+### 6.2 Prefijos por modulo
 
-### companies
+- `/api/users/`
+- `/api/companies/`
+- `/api/processes/`
+- `/api/main/`
+- `/api/indicators/`
+- `/api/normativity/`
+- `/api/habilitacion/`
+- `/api/soportes/`
+- `/api/mejoras/`
+- `/api/audit/`
 
-- Empresas
-- Departamentos
-- Sedes
-- Tipos de proceso
-- Procesos
-- Regiones y municipios
+Referencia de detalle por endpoint:
 
-### processes
+- `ENDPOINTS_API.md`
 
-- Documentos de proceso
-- Preview y descarga de archivo
+## 7. Mapa de Modulos
 
-### main
+### 7.1 users
 
-- Funcionarios
-- Contenidos
-- Eventos
-- Felicitaciones
-- Reconocimientos
+Responsabilidad:
 
-### indicators
+- Autenticacion, roles, perfil actual, 2FA y password reset
 
-- Indicadores
-- Resultados
-- Endpoint detallado para dashboard (results/detailed)
+Puntos tecnicos:
 
-### normativity
+- Custom user model (`users.User`)
+- Flujos de login con OTP temporal
+- Endpoints de 2FA (`enable`, `verify`, `toggle`)
 
-- Estándares
-- Criterios
-- Documentos normativos
-- Endpoints de consulta especializada (mandatorios, por complejidad, etc.)
+### 7.2 companies
 
-### habilitacion
+Responsabilidad:
 
-- Prestadores
-- Servicios por sede
-- Autoevaluaciones
-- Cumplimientos
-- Capacidades
-- Medidas de seguridad
-- Sanciones
-- Novedades REPS
-- Requisitos documentales
-- Checklists y evidencias
+- Catalogo organizacional: empresas, sedes, procesos, regiones
 
-### soportes
+Puntos tecnicos:
 
-- Categorías de soporte
-- Tipos de documento
-- Documentos de soporte
+- Nucleo de referencias para otros modulos (`Headquarters`, `Process`)
 
-### mejoras
+### 7.3 processes
 
-- Planes de mejora
-- Hallazgos
-- Soportes adjuntos por plan
-- Estadísticas y consultas por origen
+Responsabilidad:
 
-### audit
+- Gestion de documentos por proceso
 
-- Auditorías
-- Entidades y tipos de auditoría
-- Hallazgos de auditoría
-- Actas
-- Programas
-- Transiciones de fase y gestión de equipo auditor
+Puntos tecnicos:
 
-## Relaciones de Dominio (Resumen)
+- Endpoints de `preview` y `download`
+- Middleware custom vinculado a visualizacion embebida
+
+### 7.4 main
+
+Responsabilidad:
+
+- Contenido transversal (funcionarios, eventos, felicitaciones, reconocimientos)
+
+### 7.5 indicators
+
+Responsabilidad:
+
+- Indicadores y resultados
+
+Puntos tecnicos:
+
+- Endpoint `results/detailed` para agregados orientados a dashboard
+
+### 7.6 normativity
+
+Responsabilidad:
+
+- Estandares, criterios y documentos normativos
+
+Puntos tecnicos:
+
+- Endpoints de consulta especializada (`mandatorios`, `con-evidencia`, etc.)
+
+### 7.7 habilitacion
+
+Responsabilidad:
+
+- Prestadores, servicios, autoevaluaciones, cumplimientos y componentes complementarios
+
+Puntos tecnicos:
+
+- Subdominio mas amplio del sistema
+- Integraciones directas con `normativity`, `processes`, `soportes`, `mejoras`
+- Acciones de negocio para vencimientos, resumenes, validaciones y checklists
+
+### 7.8 soportes
+
+Responsabilidad:
+
+- Catalogacion y almacenamiento de soportes documentales
+
+### 7.9 mejoras
+
+Responsabilidad:
+
+- Planes de mejora y hallazgos con trazabilidad por origen
+
+Puntos tecnicos:
+
+- Origenes vinculables a habilitacion, auditoria e indicadores
+- Manejo de soportes por plan
+
+### 7.10 audit
+
+Responsabilidad:
+
+- Ciclo de auditorias, equipo auditor, hallazgos, actas y programas
+
+Puntos tecnicos:
+
+- Transicion de fase en auditorias
+- Integracion con modulo `mejoras`
+
+## 8. Relaciones de Datos (Vista de Ingenieria)
 
 ```mermaid
 graph LR
@@ -171,9 +267,12 @@ graph LR
     Company --> DatosPrestador
     DatosPrestador --> ServicioSede
     DatosPrestador --> Autoevaluacion
+    Autoevaluacion --> Cumplimiento
     ServicioSede --> Cumplimiento
     Criterio --> Cumplimiento
-    Autoevaluacion --> Cumplimiento
+
+    Indicator --> Result
+    Headquarters --> Result
 
     Auditoria --> HallazgoAuditoria
     Auditoria --> ActaReunion
@@ -184,55 +283,126 @@ graph LR
     HallazgoAuditoria --> PlanMejora
 ```
 
-## Seguridad Implementada
+## 9. Flujo de Request (Runtime)
 
-- Autenticación DRF vía JWT (DEFAULT_AUTHENTICATION_CLASSES)
-- 2FA funcional en flujos de users
-- CORS configurado para orígenes locales definidos
-- CSRF trusted origins configurado desde FRONTEND_URL
-- Custom user model: users.User
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant U as URLConf
+    participant V as ViewSet/APIView
+    participant S as Serializer
+    participant M as Model/ORM
+    participant D as DB
 
-## Persistencia y Archivos
+    C->>U: HTTP Request
+    U->>V: Resolucion de ruta
+    V->>S: Validacion y transformacion
+    S->>M: Operacion de dominio
+    M->>D: Query ORM
+    D-->>M: Resultado
+    M-->>V: Entidad/coleccion
+    V-->>C: Response JSON
+```
 
-- DB activa: SQLite (db.sqlite3)
-- Configuración PostgreSQL: existe como alternativa comentada
-- MEDIA_ROOT: media/
-- STATIC_ROOT: staticfiles/
+## 10. Seguridad y Control de Acceso
 
-## Infraestructura y Deployment Real
+Estado implementado:
 
-### Desarrollo
+- JWT como autenticacion por defecto en DRF
+- 2FA disponible y operativo en modulo users
+- CORS activo via middleware
+- `CSRF_TRUSTED_ORIGINS` configurable por `FRONTEND_URL`
+- `ALLOWED_HOSTS` acotado a localhost en configuracion actual
 
-- python manage.py runserver
+Observaciones:
 
-### Ejecución local tipo producción
+- `DEBUG=True` en estado actual de settings
+- Para despliegue productivo se requiere hardening explicito
 
-- python run_waitress.py
+## 11. Configuracion Operativa
 
-### IIS
+### 11.1 Parametros relevantes
 
-- Existe web.config en el repositorio
+- `DJANGO_SECRET_KEY`
+- `FRONTEND_URL`
+- `EMAIL_HOST_USER`
+- `EMAIL_HOST_PASSWORD`
+- `EMAIL_PORT`
+- `EMAIL_USE_TLS`
 
-## Hallazgos de Revisión Estricta
+### 11.2 Recursos de filesystem
 
-Estos puntos estaban documentados previamente como actuales, pero no corresponden al estado real de implementación observado:
+- `MEDIA_ROOT = media/`
+- `STATIC_ROOT = staticfiles/`
 
-- Arquitectura de microservicios: no aplica; es monolito Django
-- Celery operando: no hay configuración activa en settings ni dependencia en requirements
-- Redis operando como cache principal: no aplica; cache actual es LocMemCache
-- PostgreSQL activo por defecto: no aplica; el backend corre con SQLite por defecto
-- Módulo de facturación como app activa: no existe app de facturación en INSTALLED_APPS ni en urls
+### 11.3 Carga de datos
 
-## Fuente de Verdad Técnica
+- `cargar_estandares.py`
+- `python manage.py cargar_catalogo_soportes`
 
-Para mantenimiento documental, validar contra:
+## 12. Deployment
 
-- backend/settings.py
-- backend/urls.py
-- cada app en */urls.py y */views.py
-- requirements.txt
-- ENDPOINTS_API.md
+### 12.1 Modo desarrollo
+
+- `python manage.py runserver`
+
+### 12.2 Ejecucion local tipo produccion
+
+- `python run_waitress.py`
+
+### 12.3 Escenario IIS
+
+- Existe `web.config` en repositorio
+
+## 13. Convenciones de Desarrollo
+
+- Cada app expone su `urls.py` y `views.py`/`views/`
+- Preferencia por ViewSets para CRUD
+- Operaciones de negocio como `@action`
+- Documentar endpoints nuevos en `ENDPOINTS_API.md`
+- Mantener coherencia entre README, arquitectura y endpoints
+
+## 14. Checklist para Nuevos Ingenieros
+
+1. Levantar entorno virtual y dependencias
+2. Revisar `backend/settings.py`
+3. Ejecutar migraciones y cargas de catalogo
+4. Revisar `backend/urls.py` y `ENDPOINTS_API.md`
+5. Iniciar por modulo objetivo (models -> serializers -> views -> urls)
+6. Ejecutar `python manage.py check` y pruebas relevantes por app
+
+## 15. Riesgos Tecnicos Actuales
+
+Riesgos visibles en el estado actual:
+
+- Acoplamiento transversal alto por relaciones entre apps
+- Posible crecimiento de complejidad del monolito
+- `DEBUG=True` y configuracion local en settings base
+- Cache local no distribuida
+- Dependencia de SQLite para entorno por defecto
+
+## 16. Hallazgos de Revision Estricta
+
+Estos puntos estaban documentados como actuales en versiones anteriores y no correspondian al estado real:
+
+- Arquitectura de microservicios
+- Celery operando en background
+- Redis como cache activa principal
+- PostgreSQL activo por defecto
+- Modulo de facturacion activo en apps/urls
+
+## 17. Fuente de Verdad Tecnica
+
+Validar siempre contra:
+
+- `backend/settings.py`
+- `backend/urls.py`
+- `*/urls.py`
+- `*/views.py` o `*/views/`
+- `*/models.py` o `*/models/`
+- `requirements.txt`
+- `ENDPOINTS_API.md`
 
 ---
 
-Documento actualizado con base en revisión técnica del código fuente actual.
+Documento de arquitectura tecnica orientado a uso real de ingenieria.

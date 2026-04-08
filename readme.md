@@ -1,20 +1,30 @@
 # Portal Web Backend
 
-Backend Django para gestión de usuarios, empresas, habilitación, auditorías, mejoras, soportes, indicadores y documentos de proceso.
+Backend Django para gestion de usuarios, estructura organizacional, habilitacion, auditorias, mejoras, soportes documentales e indicadores.
 
-## Estado Real del Proyecto
+Este README esta orientado a que un ingeniero nuevo pueda:
 
-- Arquitectura: monolito Django
-- API: Django REST Framework (ViewSets + APIViews)
-- Auth: JWT + flujos 2FA en users
-- DB por defecto: SQLite
+- Entender el alcance funcional
+- Levantar el proyecto localmente
+- Ubicar rapido los modulos y endpoints
+- Operar y depurar sin depender de contexto previo
+
+## 1. Resumen Ejecutivo
+
+- Arquitectura actual: monolito Django modular
+- Exposicion: API REST con DRF
+- Autenticacion: JWT + 2FA (users)
+- Base por defecto: SQLite
 - Cache por defecto: LocMemCache
-- Estáticos: WhiteNoise
-- Servidor local alterno: Waitress
+- Estaticos: WhiteNoise
 
-## Stack Tecnológico (Verificado)
+Documentos clave del repositorio:
 
-Dependencias principales en requirements.txt:
+- `architecture.md` (arquitectura tecnica completa)
+- `ENDPOINTS_API.md` (inventario canónico de endpoints)
+- `documentos.md` (detalle funcional/extenso por modulo)
+
+## 2. Stack Tecnologico (Verificado)
 
 - Django 5.2.2
 - djangorestframework 3.16.0
@@ -25,50 +35,153 @@ Dependencias principales en requirements.txt:
 - waitress 3.0.2
 - whitenoise 6.9.0
 - pyotp 2.9.0
-- psycopg2-binary 2.9.10 (disponible para usar PostgreSQL, no activo por defecto)
+- psycopg2-binary 2.9.10
 
-## Estructura Principal
+## 3. Estructura del Proyecto
 
 ```text
 portal_web_backend/
-├── backend/
-├── users/
-├── companies/
-├── processes/
-├── main/
-├── indicators/
-├── normativity/
-├── habilitacion/
-├── soportes/
-├── mejoras/
-├── audit/
+├── backend/                # Settings, urls, asgi/wsgi
+├── users/                  # Auth, 2FA, roles, perfil
+├── companies/              # Empresas, sedes, procesos y geografia
+├── processes/              # Documentos de proceso
+├── main/                   # Contenido transversal
+├── indicators/             # Indicadores y resultados
+├── normativity/            # Estandares y criterios
+├── habilitacion/           # Prestadores, servicios, autoevaluaciones
+├── soportes/               # Catalogo y repositorio documental
+├── mejoras/                # Planes de mejora y hallazgos
+├── audit/                  # Auditorias, hallazgos, actas, programas
 ├── architecture.md
 ├── ENDPOINTS_API.md
+├── documentos.md
 ├── requirements.txt
 ├── manage.py
 └── run_waitress.py
 ```
 
-## Instalación
+## 4. Modulos Funcionales (Mapa Rapido)
 
-### 1) Crear y activar entorno virtual
+### users
 
-Windows (PowerShell):
+- Login
+- Verify OTP
+- 2FA enable/verify/toggle
+- Password reset request/confirm
+- Change password
+- Current user
+- Roles
+
+### companies
+
+- CRUD de empresas
+- Departamentos
+- Sedes
+- Tipos de proceso
+- Procesos
+- Regiones/municipios
+
+### processes
+
+- CRUD de documentos
+- Preview/download de archivo
+
+### main
+
+- Funcionarios
+- Contenidos
+- Eventos
+- Felicitaciones
+- Reconocimientos
+
+### indicators
+
+- CRUD indicadores
+- CRUD resultados
+- Endpoint agregado para dashboard
+
+### normativity
+
+- CRUD estandares
+- CRUD criterios
+- CRUD documentos normativos
+- Endpoints de consulta especializada
+
+### habilitacion
+
+- Prestadores
+- Servicios por sede
+- Autoevaluaciones
+- Cumplimientos
+- Capacidades, medidas, sanciones
+- Novedades REPS
+- Checklists, items y evidencias
+
+### soportes
+
+- Categorias
+- Tipos de documento
+- Documentos de soporte
+
+### mejoras
+
+- Planes de mejora
+- Hallazgos
+- Soportes por plan
+- Consultas resumen/estado/origen
+
+### audit
+
+- Auditorias y transicion de fase
+- Equipo auditor
+- Hallazgos de auditoria
+- Actas
+- Programas
+
+## 5. API: Rutas Base
+
+Global:
+
+- `POST /api/token/`
+- `POST /api/token/refresh/`
+
+Apps:
+
+- `/api/users/`
+- `/api/companies/`
+- `/api/processes/`
+- `/api/main/`
+- `/api/indicators/`
+- `/api/normativity/`
+- `/api/habilitacion/`
+- `/api/soportes/`
+- `/api/mejoras/`
+- `/api/audit/`
+
+Detalle completo de endpoints:
+
+- `ENDPOINTS_API.md`
+
+## 6. Quick Start Local
+
+### 6.1 Crear entorno virtual
+
+PowerShell (Windows):
 
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 ```
 
-### 2) Instalar dependencias
+### 6.2 Instalar dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3) Configurar .env
+### 6.3 Configurar variables de entorno
 
-Variables mínimas sugeridas:
+Crear `.env` en raiz:
 
 ```env
 DJANGO_SECRET_KEY=tu_clave
@@ -79,21 +192,21 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 ```
 
-### 4) Migrar base de datos
+### 6.4 Preparar base de datos
 
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-### 5) (Opcional) Cargar catálogos
+### 6.5 Cargar catalogos iniciales (recomendado)
 
 ```bash
 python cargar_estandares.py
 python manage.py cargar_catalogo_soportes
 ```
 
-### 6) Ejecutar servidor
+### 6.6 Levantar servicio
 
 Desarrollo:
 
@@ -101,126 +214,50 @@ Desarrollo:
 python manage.py runserver
 ```
 
-Waitress:
+Alterno (Waitress):
 
 ```bash
 python run_waitress.py
 ```
 
-## Configuración de Datos
+## 7. Configuracion y Entorno
 
-### Base actual por defecto
+Estado actual en settings:
 
-- SQLite en db.sqlite3
+- `DEBUG=True`
+- `ALLOWED_HOSTS = ["localhost", "127.0.0.1"]`
+- DB activa: SQLite
+- CORS para origenes locales
+- CSRF trusted origins por `FRONTEND_URL`
+- `AUTH_USER_MODEL = users.User`
 
-### PostgreSQL
+Recursos de archivos:
 
-- Existe configuración de ejemplo comentada en backend/settings.py
-- psycopg2-binary ya esta en requirements
+- `STATIC_ROOT = staticfiles/`
+- `MEDIA_ROOT = media/`
 
-## API y Endpoints
+## 8. Autenticacion y Seguridad
 
-### Endpoints globales
+Implementado:
 
-- POST /api/token/
-- POST /api/token/refresh/
+- JWT como autenticacion por defecto de DRF
+- Flujos 2FA (users)
+- Roles de usuario
+- CORS + CSRF config basica
 
-### Prefijos por app
+Para cada request autenticado:
 
-- /api/users/
-- /api/companies/
-- /api/processes/
-- /api/main/
-- /api/indicators/
-- /api/normativity/
-- /api/habilitacion/
-- /api/soportes/
-- /api/mejoras/
-- /api/audit/
+- Header `Authorization: Bearer <access_token>`
 
-Inventario completo y actualizado:
+## 9. Validacion y Calidad
 
-- ENDPOINTS_API.md
-
-## Módulos Funcionales
-
-### users
-
-- Login
-- Verify OTP
-- Enable/verify/toggle 2FA
-- Password reset request/confirm
-- Change password
-- Current user
-- Roles y listado de usuarios
-
-### companies
-
-- CRUD de empresas, departamentos, sedes, tipos de proceso, procesos, regiones y municipios
-
-### processes
-
-- CRUD de documentos
-- Preview y download de archivo
-
-### main
-
-- CRUD de funcionarios, contenidos, eventos, felicitaciones, reconocimientos
-- Consultas de cumpleaños y reconocimientos publicados/no publicados
-
-### indicators
-
-- CRUD de indicadores y resultados
-- Endpoint detailed para resultados
-
-### normativity
-
-- CRUD de estándares, criterios y documentos normativos
-- Endpoints de consulta: todos, criterios por estándar, mandatorios, por complejidad, con evidencia
-
-### habilitacion
-
-- CRUD de prestadores, servicios, autoevaluaciones, cumplimientos y componentes complementarios
-- Endpoints de negocio para vencimientos, resúmenes, validaciones, duplicados y avance de checklist
-
-### soportes
-
-- CRUD de categorías, tipos de documento y soportes documentales
-
-### mejoras
-
-- CRUD de planes de mejora y hallazgos
-- Consultas de vencidos, próximos a vencer, resumen y por origen
-- Upload/list/delete de soportes por plan
-
-### audit
-
-- CRUD de auditorías, entidades, tipos, hallazgos, actas y programas
-- Cambio de fase
-- Gestión de equipo auditor
-- Resúmenes y estadísticas
-
-## Seguridad
-
-- JWT como autenticación por defecto de DRF
-- 2FA disponible en el modulo users
-- CORS con origenes definidos en settings
-- CSRF trusted origins basado en FRONTEND_URL
-
-## Archivos Estáticos y Media
-
-- STATIC_ROOT: staticfiles/
-- MEDIA_ROOT: media/
-
-## Testing
-
-Ejecución básica:
+Chequeo basico del proyecto:
 
 ```bash
-python manage.py test
+python manage.py check
 ```
 
-Por app (ejemplo):
+Pruebas por modulo (ejemplos):
 
 ```bash
 python manage.py test users
@@ -229,24 +266,50 @@ python manage.py test audit
 python manage.py test mejoras
 ```
 
-## Deployment
+## 10. Guia de Navegacion para Ingenieros
 
-- Desarrollo: runserver
-- Ejecución con Waitress: run_waitress.py
-- Archivo web.config disponible para escenario IIS
+Cuando debas intervenir una funcionalidad, sigue este orden:
 
-## Límites y Observaciones Importantes
+1. Revisar rutas del modulo en `*/urls.py`
+2. Revisar viewset/apiview en `*/views.py` o `*/views/`
+3. Revisar serializer asociado
+4. Revisar modelo y relaciones
+5. Confirmar endpoint en `ENDPOINTS_API.md`
+6. Ejecutar `manage.py check` y pruebas relevantes
 
-Revisión estricta del estado actual:
+## 11. Operacion y Deployment
 
-- No hay arquitectura de microservicios; la aplicación es monolítica
-- Celery no está configurado/activo
-- Redis no está configurado como caché activa
-- SQLite es la base activa por defecto
+Opciones reales del repositorio:
 
-## Documentación Relacionada
+- Desarrollo con runserver
+- Ejecucion local con Waitress
+- Archivo `web.config` para escenario IIS
 
-- architecture.md
-- ENDPOINTS_API.md
-- documentos.md
-- Portal_Habilitacion_API_completo.postman_collection.json
+## 12. Limitaciones Actuales (Importante)
+
+Estado actual observado:
+
+- No hay microservicios (monolito)
+- Celery no esta configurado ni operativo
+- Redis no es cache activa
+- PostgreSQL no esta activo por defecto
+
+## 13. Convenciones de Mantenimiento Documental
+
+Cuando se cambie API o modelo:
+
+1. Actualizar endpoint en `ENDPOINTS_API.md`
+2. Ajustar impacto en `architecture.md`
+3. Ajustar onboarding/operacion en este README
+4. Verificar consistencia con `documentos.md`
+
+## 14. Soporte y Referencias Internas
+
+- `architecture.md`
+- `ENDPOINTS_API.md`
+- `documentos.md`
+- `Portal_Habilitacion_API_completo.postman_collection.json`
+
+---
+
+README orientado a uso operativo real para ingenieria.
