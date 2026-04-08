@@ -72,18 +72,28 @@ class Command(BaseCommand):
                 },
             ]
 
+            niveles_validos = dict(TipoDocumentoSoporte.NIVEL_CHOICES).keys()
+
             for item in catalogo:
                 categoria_obj, _ = CategoriaSoporte.objects.get_or_create(
                     nombre=item["categoria"],
-                    defaults={"descripcion": item["categoria"], "activo": True}
+                    defaults={
+                        "descripcion": item["categoria"],
+                        "activo": True
+                    }
                 )
 
                 for tipo in item["tipos"]:
+
+                    # 🔒 VALIDACIÓN DE NIVEL
+                    if tipo["nivel"] not in niveles_validos:
+                        raise ValueError(f'Nivel inválido: {tipo["nivel"]} en {tipo["nombre"]}')
+
                     obj, created = TipoDocumentoSoporte.objects.get_or_create(
                         categoria=categoria_obj,
                         nombre=tipo["nombre"],
                         defaults={
-                            "nivel_aplica": tipo["nivel"],  # 🔥 CLAVE
+                            "nivel_aplica": tipo["nivel"],
                             "es_obligatorio": True,
                             "requiere_vencimiento": tipo["requiere_vencimiento"],
                             "activo": True
@@ -93,11 +103,29 @@ class Command(BaseCommand):
                     if created:
                         self.stdout.write(self.style.SUCCESS(f'✔ Creado: {obj}'))
                     else:
-                        self.stdout.write(f'-- Ya existe: {obj}')
+                        # 🔥 ACTUALIZA SI YA EXISTE
+                        cambios = False
+
+                        if obj.nivel_aplica != tipo["nivel"]:
+                            obj.nivel_aplica = tipo["nivel"]
+                            cambios = True
+
+                        if obj.requiere_vencimiento != tipo["requiere_vencimiento"]:
+                            obj.requiere_vencimiento = tipo["requiere_vencimiento"]
+                            cambios = True
+
+                        if not obj.es_obligatorio:
+                            obj.es_obligatorio = True
+                            cambios = True
+
+                        if not obj.activo:
+                            obj.activo = True
+                            cambios = True
+
+                        if cambios:
+                            obj.save()
+                            self.stdout.write(self.style.WARNING(f'↺ Actualizado: {obj}'))
+                        else:
+                            self.stdout.write(f'-- Sin cambios: {obj}')
 
         self.stdout.write(self.style.SUCCESS('✅ Catálogo cargado correctamente'))
-        
-        if not created:
-            obj.nivel_aplica = tipo["nivel"]
-            obj.requiere_vencimiento = tipo["requiere_vencimiento"]
-            obj.save()

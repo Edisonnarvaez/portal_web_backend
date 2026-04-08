@@ -10,34 +10,32 @@ from .models import (
 
 
 # ======================================================
-# 🔥 CREACIÓN AUTOMÁTICA DE CHECKLIST
+# 🔥 CREACIÓN AUTOMÁTICA DE CHECKLIST (OPTIMIZADO)
 # ======================================================
-
 def crear_soportes_requeridos(instance, nivel):
-    """
-    Crea automáticamente los soportes requeridos según el nivel
-    """
 
     tipos = TipoDocumentoSoporte.objects.filter(
         nivel_aplica=nivel,
         activo=True
     )
 
+    soportes = []
+
     for tipo in tipos:
-        filtros = {
-            'tipo_documento': tipo
-        }
+        data = {'tipo_documento': tipo}
 
         if nivel == 'EMPRESA':
-            filtros['empresa'] = instance
+            data['empresa'] = instance
 
         elif nivel == 'SEDE':
-            filtros['sede'] = instance
+            data['sede'] = instance
 
         elif nivel == 'SERVICIO':
-            filtros['servicio'] = instance
+            data['servicio'] = instance
 
-        SoporteRequerido.objects.get_or_create(**filtros)
+        soportes.append(SoporteRequerido(**data))
+
+    SoporteRequerido.objects.bulk_create(soportes, ignore_conflicts=True)
 
 
 # ======================================================
@@ -68,14 +66,12 @@ def crear_checklist_servicio(sender, instance, created, **kwargs):
 
 
 # ======================================================
-# 📄 CUANDO SE SUBE UN SOPORTE → ACTUALIZA ESTADO
+# 📄 ACTUALIZACIÓN DE ESTADO (ROBUSTO)
 # ======================================================
 @receiver(post_save, sender=SoporteDocumental)
 def actualizar_estado_soporte(sender, instance, **kwargs):
 
-    filtros = {
-        'tipo_documento': instance.tipo_documento
-    }
+    filtros = {'tipo_documento': instance.tipo_documento}
 
     if instance.nivel == 'EMPRESA':
         filtros['empresa'] = instance.empresa
@@ -86,19 +82,28 @@ def actualizar_estado_soporte(sender, instance, **kwargs):
     elif instance.nivel == 'SERVICIO':
         filtros['servicio'] = instance.servicio
 
-    try:
-        soporte_req = SoporteRequerido.objects.get(**filtros)
+    soporte_req = SoporteRequerido.objects.filter(**filtros).first()
 
-        # 🔥 VALIDAR VENCIMIENTO
-        if instance.fecha_vencimiento:
-            if instance.fecha_vencimiento < timezone.now().date():
+    if not soporte_req:
+        return
+
+    # 🔥 BUSCAR DOCUMENTO VIGENTE REAL
+    vigente = SoporteDocumental.objects.filter(
+        tipo_documento=instance.tipo_documento,
+        es_vigente=True,
+        **{k: v for k, v in filtros.items() if k != 'tipo_documento'}
+    ).first()
+
+    if not vigente:
+        soporte_req.estado = 'PENDIENTE'
+
+    else:
+        if vigente.fecha_vencimiento:
+            if vigente.fecha_vencimiento < timezone.now().date():
                 soporte_req.estado = 'VENCIDO'
             else:
                 soporte_req.estado = 'CARGADO'
         else:
             soporte_req.estado = 'CARGADO'
 
-        soporte_req.save()
-
-    except SoporteRequerido.DoesNotExist:
-        pass
+    soporte_req.save()
