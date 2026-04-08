@@ -1,0 +1,32 @@
+from rest_framework import serializers
+from .models import Headquarters, DatosSede, SoporteDocumental, TipoDocumentoSoporte
+
+class TipoDocumentoSoporteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TipoDocumentoSoporte
+        fields = '__all__'
+
+class SoporteDocumentalSerializer(serializers.ModelSerializer):
+    # Mostramos el nombre del tipo para facilitar la lectura en el frontend
+    tipo_nombre = serializers.ReadOnlyField(source='tipo_documento.nombre')
+    
+    class Meta:
+        model = SoporteDocumental
+        fields = [
+            'id', 'sede', 'empresa', 'tipo_documento', 'tipo_nombre', 
+            'archivo', 'fecha_emision', 'fecha_vencimiento', 
+            'version', 'es_vigente', 'fecha_carga', 'observaciones'
+        ]
+        read_only_fields = ['version', 'es_vigente', 'fecha_carga']
+
+class HeadquartersSerializer(serializers.ModelSerializer):
+    # Incluimos los soportes vigentes relacionados a la infraestructura de la sede
+    soportes_vigentes = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Headquarters
+        fields = '__all__'
+
+    def get_soportes_vigentes(self, obj):
+        soportes = SoporteDocumental.objects.filter(sede=obj, es_vigente=True)
+        return SoporteDocumentalSerializer(soportes, many=True).data

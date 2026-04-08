@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 from .parameters import Region, Municipality
 
@@ -40,12 +41,29 @@ class Company(models.Model):
     phone = models.CharField(max_length=50)
     address = models.CharField(max_length=255)
     contactEmail = models.EmailField()
-    
+    #cargue de soporte de documento del representante legal----------------------
+    documento_representante_legal = models.FileField(
+        upload_to='empresas/representantes_legales/',
+        null=True, blank=True,
+        help_text="Documento del representante legal"
+    )
+
     foundationDate = models.DateField()
     status = models.BooleanField(default=True)  # Activo/Inactivo
     #date_autoevaluation = models.DateField(blank=True, null=True) # para que la entidad tenga el estado de activo  debe tener una autoevalucion vigente, por eso se agrega este campo para controlar la fecha de la última autoevaluación realizada por la entidad
     creationDate = models.DateField(auto_now_add=True)
     updateDate = models.DateField(auto_now=True)
+
+    def clean(self):
+        super().clean()
+        if self.region_id and self.municipality_id and self.municipality.region_id != self.region_id:
+            raise ValidationError(
+                {'municipality': 'El municipio seleccionado no pertenece a la region elegida.'}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

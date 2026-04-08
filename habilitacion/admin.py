@@ -11,7 +11,20 @@ from django.urls import reverse
 from django.db.models import Count
 from django.utils import timezone
 
-from .models import DatosPrestador, ServicioSede, Autoevaluacion, Cumplimiento
+from .models import (
+    Autoevaluacion,
+    CapacidadInstalada,
+    ChecklistItem,
+    ChecklistVerificacion,
+    Cumplimiento,
+    DatosPrestador,
+    EvidenciaChecklist,
+    MedidaSeguridadServicio,
+    NovedadREPS,
+    RequisitoDocumental,
+    SancionServicio,
+    ServicioSede,
+)
 
 
 # ============================================================================
@@ -98,7 +111,7 @@ class DatosPrestadorAdmin(admin.ModelAdmin):
     
     search_fields = [
         'codigo_reps',
-        'headquarters__nombre',
+        'headquarters__name',
         'aseguradora_pep',
     ]
     
@@ -632,7 +645,8 @@ class CumplimientoAdmin(admin.ModelAdmin):
         }),
         ('Evidencia Documental', {
             'fields': (
-                'documentos_evidencia',
+                'documentos',
+                'soportes',
             )
         }),
         ('Auditoría', {
@@ -644,7 +658,7 @@ class CumplimientoAdmin(admin.ModelAdmin):
         }),
     )
     
-    filter_horizontal = ('documentos_evidencia',)
+    filter_horizontal = ('documentos', 'soportes')
     
     def criterio_codigo_link(self, obj):
         """Link al criterio con código."""
@@ -806,3 +820,59 @@ class CumplimientoAdmin(admin.ModelAdmin):
             ]
         
         return super().changeform_view(request, object_id, form_url, extra_context)
+
+
+@admin.register(CapacidadInstalada)
+class CapacidadInstaladaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'servicio_sede', 'tipo_capacidad', 'cantidad', 'activo', 'fecha_actualizacion')
+    search_fields = ('servicio_sede__codigo_servicio', 'servicio_sede__nombre_servicio', 'tipo_capacidad', 'subtipo')
+    list_filter = ('tipo_capacidad', 'activo')
+
+
+@admin.register(MedidaSeguridadServicio)
+class MedidaSeguridadServicioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'servicio_sede', 'estado', 'norma_referencia', 'fecha_inicio', 'fecha_fin')
+    search_fields = ('servicio_sede__codigo_servicio', 'servicio_sede__nombre_servicio', 'norma_referencia', 'descripcion')
+    list_filter = ('estado',)
+
+
+@admin.register(SancionServicio)
+class SancionServicioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'servicio_sede', 'tipo_sancion', 'estado', 'fecha_inicio', 'fecha_fin')
+    search_fields = ('servicio_sede__codigo_servicio', 'servicio_sede__nombre_servicio', 'tipo_sancion')
+    list_filter = ('estado', 'tipo_sancion')
+
+
+@admin.register(NovedadREPS)
+class NovedadREPSAdmin(admin.ModelAdmin):
+    list_display = ('id', 'datos_prestador', 'codigo_novedad', 'tipo_novedad', 'subtipo_novedad', 'fecha_radicacion', 'estado')
+    search_fields = ('datos_prestador__codigo_reps', 'datos_prestador__nombre_prestador', 'codigo_novedad')
+    list_filter = ('estado', 'tipo_novedad', 'subtipo_novedad')
+
+
+@admin.register(RequisitoDocumental)
+class RequisitoDocumentalAdmin(admin.ModelAdmin):
+    list_display = ('id', 'codigo', 'nombre', 'tipo_tramite', 'obligatorio', 'activo')
+    search_fields = ('codigo', 'nombre', 'tipo_tramite')
+    list_filter = ('tipo_tramite', 'obligatorio', 'activo')
+
+
+@admin.register(ChecklistVerificacion)
+class ChecklistVerificacionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'codigo_checklist', 'novedad', 'servicio_sede', 'estado', 'fecha_cierre')
+    search_fields = ('codigo_checklist', 'novedad__codigo_novedad', 'servicio_sede__codigo_servicio')
+    list_filter = ('estado',)
+
+
+@admin.register(ChecklistItem)
+class ChecklistItemAdmin(admin.ModelAdmin):
+    list_display = ('id', 'checklist', 'requisito', 'obligatorio', 'cumple', 'fecha_actualizacion')
+    search_fields = ('checklist__codigo_checklist', 'requisito__codigo', 'requisito__nombre')
+    list_filter = ('cumple',)
+
+
+@admin.register(EvidenciaChecklist)
+class EvidenciaChecklistAdmin(admin.ModelAdmin):
+    list_display = ('id', 'checklist_item', 'tipo', 'nombre', 'fecha_subida', 'subido_por')
+    search_fields = ('checklist_item__requisito__codigo', 'checklist_item__requisito__nombre', 'tipo', 'nombre')
+    list_filter = ('tipo',)

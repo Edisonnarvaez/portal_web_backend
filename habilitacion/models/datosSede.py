@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
 
-from companies.models import Headquarters
+from companies.models import Company, Headquarters
 
 User = get_user_model()
 
@@ -30,6 +30,14 @@ class DatosPrestador(models.Model):
         on_delete=models.PROTECT,
         related_name='prestadores_habilitados',
         verbose_name='Sede (Headquarters)',
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='prestadores_habilitados',
+        verbose_name='Empresa',
     )
     codigo_reps = models.CharField(
         max_length=20,
@@ -91,6 +99,19 @@ class DatosPrestador(models.Model):
 
     def __str__(self):
         return f'{self.codigo_reps} - {self.headquarters.name}'
+
+    def clean(self):
+        super().clean()
+        if self.headquarters_id and self.company_id and self.headquarters.company_id != self.company_id:
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError({'company': 'La empresa debe coincidir con la empresa de la sede seleccionada.'})
+
+    def save(self, *args, **kwargs):
+        if self.headquarters_id and not self.company_id:
+            self.company_id = self.headquarters.company_id
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def dias_para_vencimiento(self):
         if not self.fecha_vencimiento_habilitacion:

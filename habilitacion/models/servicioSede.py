@@ -50,6 +50,7 @@ class ServicioSede(models.Model):
     )
     fecha_habilitacion = models.DateField(blank=True, null=True, verbose_name='Fecha de Habilitacion')
     fecha_vencimiento = models.DateField(blank=True, null=True, verbose_name='Fecha de Vencimiento')
+    requiere_renovacion = models.BooleanField(default=False)
     fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de Creacion')
     fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name='Fecha de Actualizacion')
 
@@ -65,6 +66,13 @@ class ServicioSede(models.Model):
 
     def __str__(self):
         return f'{self.codigo_servicio} - {self.nombre_servicio}'
+
+    def save(self, *args, **kwargs):
+        if self.fecha_vencimiento:
+            self.requiere_renovacion = self.fecha_vencimiento < timezone.now().date()
+        else:
+            self.requiere_renovacion = False
+        super().save(*args, **kwargs)
 
     def dias_para_vencimiento(self):
         if not self.fecha_vencimiento:

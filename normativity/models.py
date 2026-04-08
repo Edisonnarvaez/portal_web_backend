@@ -119,6 +119,14 @@ class Criterio(models.Model):
         default=False,
         verbose_name="Requiere evidencia documental"
     )
+    requiere_documento = models.BooleanField(
+        default=False,
+        verbose_name='Requiere documento de calidad'
+    )
+    requiere_soporte = models.BooleanField(
+        default=False,
+        verbose_name='Requiere soporte normativo'
+    )
     # Metadatos
     estado = models.BooleanField(
         default=True,

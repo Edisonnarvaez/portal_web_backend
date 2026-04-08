@@ -3,3 +3,5 @@ from .department_serializer import DepartmentSerializer
 from .headquarters_serializer import HeadquartersSerializer
 from .process_type_serializer import ProcessTypeSerializer
 from .process_serializer import ProcessSerializer
+from .region_serializer import RegionSerializer
+from .municipality_serializer import MunicipalitySerializer

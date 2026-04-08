@@ -8,7 +8,7 @@ class Region(models.Model):
     
     
 class Municipality(models.Model):
-    code = models.CharField(max_length=10, unique=True)
+    code = models.CharField(max_length=10, unique=False)
     name = models.CharField(max_length=255)
     region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name='Departamento')
     def __str__(self):

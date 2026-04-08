@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from companies.models import Headquarters
+from companies.models import Company, Headquarters
 
 from ..models import DatosPrestador
 
@@ -8,10 +8,7 @@ from ..models import DatosPrestador
 class DatosPrestadorListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listados de DatosPrestador."""
 
-    company_name = serializers.CharField(
-        source='headquarters.company.name',
-        read_only=True,
-    )
+    company_name = serializers.SerializerMethodField()
     estado_display = serializers.CharField(
         source='get_estado_habilitacion_display',
         read_only=True,
@@ -38,6 +35,13 @@ class DatosPrestadorListSerializer(serializers.ModelSerializer):
         """Esta proxima a vencer?"""
         return obj.esta_proxima_a_vencer(dias=90)
 
+    def get_company_name(self, obj):
+        if obj.company_id:
+            return obj.company.name
+        if obj.headquarters_id and obj.headquarters.company_id:
+            return obj.headquarters.company.name
+        return None
+
     def get_dias_vencimiento(self, obj):
         """Dias restantes para vencimiento."""
         return obj.dias_para_vencimiento()
@@ -49,6 +53,13 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
     headquarters_id = serializers.PrimaryKeyRelatedField(
         queryset=Headquarters.objects.all(),
         source='headquarters',
+        write_only=True,
+    )
+    company_id = serializers.PrimaryKeyRelatedField(
+        queryset=Company.objects.all(),
+        source='company',
+        required=False,
+        allow_null=True,
         write_only=True,
     )
     company_detail = serializers.SerializerMethodField()
@@ -73,6 +84,7 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
             'id',
             'codigo_reps',
             'headquarters_id',
+            'company_id',
             'company_detail',
             'headquarters_detail',
             'nombre_prestador',
@@ -107,7 +119,7 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_company_detail(self, obj):
-        company = obj.headquarters.company
+        company = obj.company or obj.headquarters.company
         return {
             'id': company.id,
             'name': company.name,
@@ -140,3 +152,15 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
                 'El codigo REPS debe tener al menos 5 caracteres.'
             )
         return value
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        company = attrs.get('company')
+        headquarters = attrs.get('headquarters')
+
+        if company and headquarters and headquarters.company_id != company.id:
+            raise serializers.ValidationError(
+                {'company_id': 'La empresa debe coincidir con la empresa asociada a la sede.'}
+            )
+
+        return attrs

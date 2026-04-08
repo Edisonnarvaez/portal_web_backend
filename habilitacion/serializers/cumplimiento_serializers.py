@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from normativity.models import Criterio
 from processes.models import Documento
+from soportes.models import SoporteDocumental
 
 from ..models import Autoevaluacion, Cumplimiento, ServicioSede
 
@@ -25,12 +26,11 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
         source='get_cumple_display',
         read_only=True,
     )
-    documentos_evidencia = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Documento.objects.filter(estado='VIG', activo=True),
-        required=False,
-    )
+    documentos = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    soportes = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    documentos_evidencia = serializers.PrimaryKeyRelatedField(source='documentos', many=True, read_only=True)
     documentos_evidencia_list = serializers.SerializerMethodField(read_only=True)
+    soportes_list = serializers.SerializerMethodField(read_only=True)
     tiene_plan_mejora = serializers.SerializerMethodField()
     planes_mejora_count = serializers.SerializerMethodField()
     hallazgos_count = serializers.SerializerMethodField()
@@ -47,8 +47,11 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
             'criterio_id',
             'cumple',
             'cumple_display',
+            'documentos',
+            'soportes',
             'documentos_evidencia',
             'documentos_evidencia_list',
+            'soportes_list',
             'tiene_plan_mejora',
             'planes_mejora_count',
             'hallazgos_count',
@@ -75,7 +78,7 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
         ).count()
 
     def get_documentos_evidencia_list(self, obj):
-        documentos = obj.documentos_evidencia.all()
+        documentos = obj.documentos.all()
         return [
             {
                 'id': doc.id,
@@ -84,6 +87,19 @@ class CumplimientoListSerializer(serializers.ModelSerializer):
                 'archivo': str(doc.archivo_oficial) if doc.archivo_oficial else None,
             }
             for doc in documentos
+        ]
+
+    def get_soportes_list(self, obj):
+        soportes = obj.soportes.select_related('tipo_documento').all()
+        return [
+            {
+                'id': soporte.id,
+                'tipo_documento': soporte.tipo_documento.nombre,
+                'nivel': soporte.nivel,
+                'es_vigente': soporte.es_vigente,
+                'archivo': str(soporte.archivo) if soporte.archivo else None,
+            }
+            for soporte in soportes
         ]
 
 
@@ -105,7 +121,18 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
         source='criterio',
         write_only=True,
     )
+    documentos = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Documento.objects.filter(estado='VIG', activo=True),
+        required=False,
+    )
+    soportes = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=SoporteDocumental.objects.filter(es_vigente=True),
+        required=False,
+    )
     documentos_evidencia = serializers.PrimaryKeyRelatedField(
+        source='documentos',
         many=True,
         queryset=Documento.objects.filter(estado='VIG', activo=True),
         required=False,
@@ -116,6 +143,8 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
     autoevaluacion_detail = serializers.SerializerMethodField()
     servicio_sede_detail = serializers.SerializerMethodField()
     criterio_detail = serializers.SerializerMethodField()
+    documentos_list = serializers.SerializerMethodField()
+    soportes_list = serializers.SerializerMethodField()
     documentos_evidencia_list = serializers.SerializerMethodField()
     responsable_mejora_detail = serializers.SerializerMethodField()
 
@@ -140,6 +169,10 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             'servicios_disponibles',
             'criterio_id',
             'criterio_detail',
+            'documentos',
+            'documentos_list',
+            'soportes',
+            'soportes_list',
             'documentos_evidencia',
             'documentos_evidencia_list',
             'cumple',
@@ -193,7 +226,7 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
         }
 
     def get_documentos_evidencia_list(self, obj):
-        documentos = obj.documentos_evidencia.all()
+        documentos = obj.documentos.all()
         return [
             {
                 'id': doc.id,
@@ -202,6 +235,22 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
                 'archivo': str(doc.archivo_oficial) if doc.archivo_oficial else None,
             }
             for doc in documentos
+        ]
+
+    def get_documentos_list(self, obj):
+        return self.get_documentos_evidencia_list(obj)
+
+    def get_soportes_list(self, obj):
+        soportes = obj.soportes.select_related('tipo_documento').all()
+        return [
+            {
+                'id': soporte.id,
+                'tipo_documento': soporte.tipo_documento.nombre,
+                'nivel': soporte.nivel,
+                'es_vigente': soporte.es_vigente,
+                'archivo': str(soporte.archivo) if soporte.archivo else None,
+            }
+            for soporte in soportes
         ]
 
     def get_responsable_mejora_detail(self, obj):
@@ -319,3 +368,32 @@ class CumplimientoDetailSerializer(serializers.ModelSerializer):
             }
             for h in hallazgos
         ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        criterio = attrs.get('criterio') or getattr(self.instance, 'criterio', None)
+        cumple = attrs.get('cumple') or getattr(self.instance, 'cumple', None)
+
+        if not criterio or not cumple or cumple == 'NO_APLICA':
+            return attrs
+
+        documentos = attrs.get('documentos', None)
+        soportes = attrs.get('soportes', None)
+
+        if documentos is None and self.instance is not None:
+            documentos = list(self.instance.documentos.all())
+        if soportes is None and self.instance is not None:
+            soportes = list(self.instance.soportes.all())
+
+        if getattr(criterio, 'requiere_documento', False) and not documentos:
+            raise serializers.ValidationError(
+                {'documentos': 'Este criterio requiere al menos un documento de calidad.'}
+            )
+
+        if getattr(criterio, 'requiere_soporte', False) and not soportes:
+            raise serializers.ValidationError(
+                {'soportes': 'Este criterio requiere al menos un soporte documental vigente.'}
+            )
+
+        return attrs

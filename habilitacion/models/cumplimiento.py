@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from normativity.models import Criterio
 from processes.models import Documento
+from soportes.models import SoporteDocumental
 
 User = get_user_model()
 
@@ -36,11 +37,17 @@ class Cumplimiento(models.Model):
     )
     criterio = models.ForeignKey(Criterio, on_delete=models.PROTECT, related_name='cumplimientos', verbose_name='Criterio')
     cumple = models.CharField(max_length=20, choices=RESULTADO_CHOICES, verbose_name='Resultado de Cumplimiento')
-    documentos_evidencia = models.ManyToManyField(
+    documentos = models.ManyToManyField(
         Documento,
         blank=True,
-        related_name='cumplimientos',
-        verbose_name='Documentos de Evidencia',
+        related_name='cumplimientos_documentos',
+        verbose_name='Documentos de Calidad',
+    )
+    soportes = models.ManyToManyField(
+        SoporteDocumental,
+        blank=True,
+        related_name='cumplimientos_soportes',
+        verbose_name='Soportes de Evidencia',
     )
     hallazgo = models.TextField(blank=True, null=True, verbose_name='Hallazgo/Observacion')
     plan_mejora = models.TextField(blank=True, null=True, verbose_name='Plan de Mejora')
@@ -76,6 +83,11 @@ class Cumplimiento(models.Model):
         if not self.fecha_compromiso:
             return False
         return self.fecha_compromiso < timezone.now().date()
+
+    @property
+    def documentos_evidencia(self):
+        """Alias de compatibilidad para clientes que aun consumen documentos_evidencia."""
+        return self.documentos
 
 
 ALLOWED_CHECKLIST_EXTENSIONS = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg', '.xls', '.xlsx']

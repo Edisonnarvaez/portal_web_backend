@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
@@ -40,6 +42,8 @@ class Autoevaluacion(models.Model):
     fecha_inicio = models.DateField(auto_now_add=True, verbose_name='Fecha de Inicio')
     fecha_completacion = models.DateField(blank=True, null=True, verbose_name='Fecha de Completacion')
     fecha_vencimiento = models.DateField(
+        blank=True,
+        null=True,
         verbose_name='Fecha de Vencimiento',
         help_text='Fecha hasta la cual esta autoevaluacion es valida',
     )
@@ -73,6 +77,8 @@ class Autoevaluacion(models.Model):
     def save(self, *args, **kwargs):
         if not self.numero_autoevaluacion:
             self.numero_autoevaluacion = f'AUT-{self.datos_prestador.codigo_reps}-{self.periodo}'
+        if not self.fecha_vencimiento and self.periodo:
+            self.fecha_vencimiento = date(self.periodo, 12, 31)
         super().save(*args, **kwargs)
 
     def porcentaje_cumplimiento(self):

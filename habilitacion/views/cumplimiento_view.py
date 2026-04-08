@@ -29,7 +29,7 @@ class CumplimientoViewSet(viewsets.ModelViewSet):
         'servicio_sede',
         'criterio',
         'responsable_mejora',
-    ).prefetch_related('documentos_evidencia')
+    ).prefetch_related('documentos', 'soportes')
     permission_classes = [IsAuthenticated]
     filter_backends = [
         DjangoFilterBackend,
