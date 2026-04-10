@@ -1,6 +1,11 @@
 from rest_framework import serializers
 
-from .models import CategoriaSoporte, SoporteDocumental, TipoDocumentoSoporte
+from .models import (
+    CategoriaSoporte,
+    SoporteDocumental,
+    SoporteRequerido,
+    TipoDocumentoSoporte,
+)
 
 
 class CategoriaSoporteSerializer(serializers.ModelSerializer):
@@ -18,16 +23,26 @@ class TipoDocumentoSoporteSerializer(serializers.ModelSerializer):
 
 
 class SoporteDocumentalSerializer(serializers.ModelSerializer):
+    # ✅ CAMPOS READ-ONLY PARA INFORMACIÓN RELACIONADA
     tipo_nombre = serializers.ReadOnlyField(source='tipo_documento.nombre')
+    prestador_nombre = serializers.ReadOnlyField(source='prestador.nombre_prestador')
+    empresa_nombre = serializers.ReadOnlyField(source='empresa.name')
+    sede_nombre = serializers.ReadOnlyField(source='sede.name')
+    servicio_nombre = serializers.ReadOnlyField(source='servicio.nombre')
 
     class Meta:
         model = SoporteDocumental
         fields = [
             'id',
+            'prestador',
+            'prestador_nombre',
             'nivel',
             'empresa',
+            'empresa_nombre',
             'sede',
+            'sede_nombre',
             'servicio',
+            'servicio_nombre',
             'tipo_documento',
             'tipo_nombre',
             'archivo',
@@ -38,7 +53,15 @@ class SoporteDocumentalSerializer(serializers.ModelSerializer):
             'fecha_carga',
             'observaciones',
         ]
-        read_only_fields = ['version', 'fecha_carga']
+        read_only_fields = [
+            'version',
+            'fecha_carga',
+            'prestador_nombre',
+            'empresa_nombre',
+            'sede_nombre',
+            'servicio_nombre',
+            'tipo_nombre',
+        ]
 
     def validate(self, data):
         tipo = data.get('tipo_documento')
@@ -56,3 +79,39 @@ class SoporteDocumentalSerializer(serializers.ModelSerializer):
                 )
 
         return data
+
+
+class SoporteRequeridoSerializer(serializers.ModelSerializer):
+    # ✅ CAMPOS READ-ONLY PARA INFORMACIÓN RELACIONADA
+    prestador_nombre = serializers.ReadOnlyField(source='prestador.nombre_prestador')
+    tipo_nombre = serializers.ReadOnlyField(source='tipo_documento.nombre')
+    empresa_nombre = serializers.ReadOnlyField(source='empresa.name')
+    sede_nombre = serializers.ReadOnlyField(source='sede.name')
+    servicio_nombre = serializers.ReadOnlyField(source='servicio.nombre')
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+
+    class Meta:
+        model = SoporteRequerido
+        fields = [
+            'id',
+            'prestador',
+            'prestador_nombre',
+            'empresa',
+            'empresa_nombre',
+            'sede',
+            'sede_nombre',
+            'servicio',
+            'servicio_nombre',
+            'tipo_documento',
+            'tipo_nombre',
+            'estado',
+            'estado_display',
+        ]
+        read_only_fields = [
+            'prestador_nombre',
+            'empresa_nombre',
+            'sede_nombre',
+            'servicio_nombre',
+            'tipo_nombre',
+            'estado_display',
+        ]

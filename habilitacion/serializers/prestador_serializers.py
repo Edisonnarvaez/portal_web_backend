@@ -131,7 +131,6 @@ class DatosPrestadorDetailSerializer(serializers.ModelSerializer):
         return {
             'id': hq.id,
             'name': hq.name,
-            'habilitationCode': hq.habilitationCode,
         }
 
     def get_dias_vencimiento(self, obj):

@@ -42,12 +42,13 @@ class TipoDocumentoSoporte(models.Model):
 
     nombre = models.CharField(max_length=120)
 
-    # 🔥 NIVEL PRO
+    # ✅ NIVEL (TEMPORAL NULLABLE PARA MIGRACIÓN)
     nivel_aplica = models.CharField(
         max_length=10,
         choices=NIVEL_CHOICES,
-        null=True,      # 🔥 TEMPORAL
-        blank=True      # 🔥 TEMPORAL
+        null=True,
+        blank=True,
+        help_text='Nivel al que aplica este tipo de documento'
     )
 
     es_obligatorio = models.BooleanField(default=True)
@@ -70,28 +71,49 @@ class SoporteDocumental(models.Model):
 
     NIVEL_CHOICES = TipoDocumentoSoporte.NIVEL_CHOICES
 
-    nivel = models.CharField(max_length=10, choices=NIVEL_CHOICES)
-
-    empresa = models.ForeignKey(
-        'companies.Company',
-        null=True,
-        blank=True,
+    # ✅ PRESTADOR - SIEMPRE REQUERIDO (base de toda la jerarquía)
+    prestador = models.ForeignKey(
+        'habilitacion.DatosPrestador',
+        null=False,
+        blank=False,
         on_delete=models.CASCADE,
         related_name='soportes_documentales',
+        help_text='Prestador propietario de este documento soporte (REQUERIDO)'
     )
+
+    nivel = models.CharField(
+        max_length=10,
+        choices=NIVEL_CHOICES,
+        help_text='Nivel del documento: EMPRESA, SEDE o SERVICIO'
+    )
+
+    # ✅ EMPRESA - SIEMPRE REQUERIDO (base jerárquica)
+    empresa = models.ForeignKey(
+        'companies.Company',
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name='soportes_documentales',
+        help_text='Empresa matriz del documento (REQUERIDO)'
+    )
+    # ✅ SEDE - Requerido solo si nivel >= SEDE
     sede = models.ForeignKey(
         'companies.Headquarters',
         null=True,
         blank=True,
         on_delete=models.CASCADE,
         related_name='soportes_documentales',
+        help_text='Sede física (requerido para nivel SEDE o SERVICIO)'
     )
+    
+    # ✅ SERVICIO - Requerido solo si nivel = SERVICIO
     servicio = models.ForeignKey(
         'habilitacion.ServicioSede',
         null=True,
         blank=True,
         on_delete=models.CASCADE,
         related_name='soportes_documentales',
+        help_text='Servicio específico (requerido solo para nivel SERVICIO)'
     )
 
     tipo_documento = models.ForeignKey(
@@ -114,8 +136,11 @@ class SoporteDocumental(models.Model):
     class Meta:
         db_table = 'soportes_soportedocumental'
         ordering = ['-fecha_carga']
+        # ✅ ÍNDICES PARA FILTRADO CASCADA
         indexes = [
-            models.Index(fields=['nivel', 'es_vigente']),
+            models.Index(fields=['prestador', 'nivel', 'es_vigente']),
+            models.Index(fields=['empresa', 'nivel', 'es_vigente']),
+            models.Index(fields=['sede', 'es_vigente']),
             models.Index(fields=['tipo_documento', 'es_vigente']),
             models.Index(fields=['fecha_vencimiento']),
         ]
@@ -130,30 +155,73 @@ class SoporteDocumental(models.Model):
     def clean(self):
         super().clean()
 
-        relaciones = [self.empresa_id, self.sede_id, self.servicio_id]
-        relaciones_set = sum(1 for rel in relaciones if rel)
-
-        if relaciones_set != 1:
-            raise ValidationError(
-                'Debe asociar exactamente una relación: empresa, sede o servicio.'
-            )
-
-        if self.nivel == 'EMPRESA' and not self.empresa_id:
+        # ✅ VALIDACIONES BÁSICAS (siempre requeridas)
+        if not self.prestador_id:
+            raise ValidationError({'prestador': 'Debe seleccionar prestador.'})
+        if not self.empresa_id:
             raise ValidationError({'empresa': 'Debe seleccionar empresa.'})
+        if not self.nivel:
+            raise ValidationError({'nivel': 'Debe seleccionar nivel.'})
+        if not self.tipo_documento_id:
+            raise ValidationError({'tipo_documento': 'Debe seleccionar tipo de documento.'})
 
-        if self.nivel == 'SEDE' and not self.sede_id:
-            raise ValidationError({'sede': 'Debe seleccionar sede.'})
-
-        if self.nivel == 'SERVICIO' and not self.servicio_id:
-            raise ValidationError({'servicio': 'Debe seleccionar servicio.'})
-
-        # 🔥 VALIDACIÓN PRO
+        # ✅ VALIDAR TIPO DE DOCUMENTO APLICA A ESTE NIVEL
         if self.tipo_documento.nivel_aplica != self.nivel:
             raise ValidationError(
-                f'Este tipo de documento aplica a nivel {self.tipo_documento.nivel_aplica}'
+                f'Este tipo de documento aplica a nivel {self.tipo_documento.nivel_aplica}, no {self.nivel}.'
             )
 
-        # 🔥 VALIDACIÓN DE VENCIMIENTO
+        # ✅ VALIDACIONES POR NIVEL
+        if self.nivel == 'EMPRESA':
+            # EMPRESA: Solo empresa_id requerido
+            if self.sede_id or self.servicio_id:
+                raise ValidationError(
+                    'Para nivel EMPRESA, no debe especificar sede ni servicio.'
+                )
+
+        elif self.nivel == 'SEDE':
+            # SEDE: Empresa + Sede requeridos
+            if not self.sede_id:
+                raise ValidationError({'sede': 'Debe seleccionar sede para nivel SEDE.'})
+            if self.servicio_id:
+                raise ValidationError('Para nivel SEDE, no debe especificar servicio.')
+            
+            # ✅ VALIDAR CASCADA: Sede debe pertenece a Empresa
+            sede = self.sede
+            if sede.company_id != self.empresa_id:
+                raise ValidationError(
+                    {'sede': f'La sede seleccionada no pertenece a la empresa {self.empresa.name}.'}
+                )
+
+        elif self.nivel == 'SERVICIO':
+            # SERVICIO: Empresa + Sede + Servicio requeridos
+            if not self.sede_id:
+                raise ValidationError({'sede': 'Debe seleccionar sede para nivel SERVICIO.'})
+            if not self.servicio_id:
+                raise ValidationError({'servicio': 'Debe seleccionar servicio para nivel SERVICIO.'})
+            
+            # ✅ VALIDAR CASCADA: Sede pertenece a Empresa
+            sede = self.sede
+            if sede.company_id != self.empresa_id:
+                raise ValidationError(
+                    {'sede': f'La sede no pertenece a la empresa {self.empresa.name}.'}
+                )
+            
+            # ✅ VALIDAR CASCADA: Servicio pertenece a Prestador
+            servicio = self.servicio
+            if servicio.prestador_id != self.prestador_id:
+                raise ValidationError(
+                    {'servicio': f'El servicio no pertenece al prestador {self.prestador.nombre_prestador}.'}
+                )
+            
+            # ✅ VALIDAR CASCADA: Prestador pertenece a Sede
+            prestador = self.prestador
+            if prestador.headquarters_id != self.sede_id:
+                raise ValidationError(
+                    {'sede': f'El prestador está registrado en otra sede, no en {sede.name}.'}
+                )
+
+        # ✅ VALIDACIÓN DE VENCIMIENTO
         if self.tipo_documento.requiere_vencimiento and not self.fecha_vencimiento:
             raise ValidationError(
                 {'fecha_vencimiento': 'Este documento requiere fecha de vencimiento.'}
@@ -163,13 +231,20 @@ class SoporteDocumental(models.Model):
     # FILTRO DE CONTEXTO
     # ==============================
     def _scope_filter(self):
+        """Filtra documentos previos del mismo tipo para versionamiento."""
+        base_q = Q(
+            prestador_id=self.prestador_id,
+            tipo_documento_id=self.tipo_documento_id,
+            nivel=self.nivel
+        )
+
         if self.nivel == 'EMPRESA':
-            return Q(nivel='EMPRESA', empresa_id=self.empresa_id)
+            return base_q & Q(empresa_id=self.empresa_id)
 
         if self.nivel == 'SEDE':
-            return Q(nivel='SEDE', sede_id=self.sede_id)
+            return base_q & Q(empresa_id=self.empresa_id, sede_id=self.sede_id)
 
-        return Q(nivel='SERVICIO', servicio_id=self.servicio_id)
+        return base_q & Q(empresa_id=self.empresa_id, sede_id=self.sede_id, servicio_id=self.servicio_id)
 
     # ==============================
     # VERSIONAMIENTO AUTOMÁTICO
@@ -208,6 +283,16 @@ class SoporteRequerido(models.Model):
         ('VENCIDO', 'Vencido'),
     ]
 
+    # ✅ PRESTADOR (NUEVO) - Temporal nullable para migración
+    prestador = models.ForeignKey(
+        'habilitacion.DatosPrestador',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='soportes_requeridos',
+        help_text='Prestador al cual se requiere este documento'
+    )
+
     empresa = models.ForeignKey('companies.Company', null=True, blank=True, on_delete=models.CASCADE)
     sede = models.ForeignKey('companies.Headquarters', null=True, blank=True, on_delete=models.CASCADE)
     servicio = models.ForeignKey('habilitacion.ServicioSede', null=True, blank=True, on_delete=models.CASCADE)
@@ -218,7 +303,8 @@ class SoporteRequerido(models.Model):
 
     class Meta:
         db_table = 'soportes_soporterequerido'
-        unique_together = ('empresa', 'sede', 'servicio', 'tipo_documento')
+        # ✅ INCLUIR PRESTADOR EN UNIQUE CONSTRAINT
+        unique_together = ('prestador', 'empresa', 'sede', 'servicio', 'tipo_documento')
 
     def __str__(self):
         return f'{self.tipo_documento.nombre} - {self.estado}'

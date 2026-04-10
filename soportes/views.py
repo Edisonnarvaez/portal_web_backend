@@ -2,10 +2,16 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from .models import CategoriaSoporte, SoporteDocumental, TipoDocumentoSoporte
+from .models import (
+    CategoriaSoporte,
+    SoporteDocumental,
+    SoporteRequerido,
+    TipoDocumentoSoporte,
+)
 from .serializers import (
     CategoriaSoporteSerializer,
     SoporteDocumentalSerializer,
+    SoporteRequeridoSerializer,
     TipoDocumentoSoporteSerializer,
 )
 
@@ -32,9 +38,43 @@ class TipoDocumentoSoporteViewSet(viewsets.ModelViewSet):
     ordering = ['nombre']
 
 
+# ✅ NUEVO VIEWSET PARA SOPORTE REQUERIDO
+class SoporteRequeridoViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = SoporteRequerido.objects.select_related(
+        'prestador',
+        'tipo_documento',
+        'empresa',
+        'sede',
+        'servicio',
+    ).all()
+    serializer_class = SoporteRequeridoSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    # ✅ FILTROS DISPONIBLES
+    filterset_fields = [
+        'prestador',
+        'empresa',
+        'sede',
+        'servicio',
+        'tipo_documento',
+        'estado',
+    ]
+    ordering_fields = ['prestador', 'estado']
+    ordering = ['prestador', 'estado']
+
+    def get_queryset(self):
+        """✅ FILTRAR AUTOMÁTICAMENTE POR PRESTADOR DEL REQUEST SI SE PROPORCIONA"""
+        queryset = super().get_queryset()
+        prestador_id = self.request.query_params.get('prestador_id')
+        if prestador_id:
+            queryset = queryset.filter(prestador_id=prestador_id)
+        return queryset
+
+
 class SoporteDocumentalViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = SoporteDocumental.objects.select_related(
+        'prestador',
         'tipo_documento',
         'tipo_documento__categoria',
         'empresa',
@@ -43,7 +83,9 @@ class SoporteDocumentalViewSet(viewsets.ModelViewSet):
     ).all().order_by('-fecha_carga')
     serializer_class = SoporteDocumentalSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    # ✅ AGREGAR prestador AL FILTRO
     filterset_fields = [
+        'prestador',
         'nivel',
         'empresa',
         'sede',
@@ -53,3 +95,11 @@ class SoporteDocumentalViewSet(viewsets.ModelViewSet):
     ]
     ordering_fields = ['fecha_carga', 'fecha_emision', 'fecha_vencimiento', 'version']
     ordering = ['-fecha_carga']
+
+    def get_queryset(self):
+        """✅ FILTRAR AUTOMÁTICAMENTE POR PRESTADOR DEL REQUEST SI SE PROPORCIONA"""
+        queryset = super().get_queryset()
+        prestador_id = self.request.query_params.get('prestador_id')
+        if prestador_id:
+            queryset = queryset.filter(prestador_id=prestador_id)
+        return queryset
