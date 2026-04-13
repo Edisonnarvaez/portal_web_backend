@@ -98,12 +98,12 @@ class SoporteDocumental(models.Model):
     )
     # ✅ SEDE - Requerido solo si nivel >= SEDE
     sede = models.ForeignKey(
-        'companies.Headquarters',
+        'habilitacion.DatosPrestador',
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name='soportes_documentales',
-        help_text='Sede física (requerido para nivel SEDE o SERVICIO)'
+        related_name='soportes_documentales_sede',
+        help_text='Sede  (requerido para nivel SEDE o SERVICIO)'
     )
     
     # ✅ SERVICIO - Requerido solo si nivel = SERVICIO
@@ -186,9 +186,9 @@ class SoporteDocumental(models.Model):
             if self.servicio_id:
                 raise ValidationError('Para nivel SEDE, no debe especificar servicio.')
             
-            # ✅ VALIDAR CASCADA: Sede debe pertenece a Empresa
+            # ✅ VALIDAR CASCADA: Sede (DatosPrestador) debe pertenecer a Empresa
             sede = self.sede
-            if sede.company_id != self.empresa_id:
+            if sede.headquarters.company_id != self.empresa_id:
                 raise ValidationError(
                     {'sede': f'La sede seleccionada no pertenece a la empresa {self.empresa.name}.'}
                 )
@@ -200,25 +200,25 @@ class SoporteDocumental(models.Model):
             if not self.servicio_id:
                 raise ValidationError({'servicio': 'Debe seleccionar servicio para nivel SERVICIO.'})
             
-            # ✅ VALIDAR CASCADA: Sede pertenece a Empresa
+            # ✅ VALIDAR CASCADA: Sede (DatosPrestador) pertenece a Empresa
             sede = self.sede
-            if sede.company_id != self.empresa_id:
+            if sede.headquarters.company_id != self.empresa_id:
                 raise ValidationError(
                     {'sede': f'La sede no pertenece a la empresa {self.empresa.name}.'}
                 )
             
-            # ✅ VALIDAR CASCADA: Servicio pertenece a Prestador
+            # ✅ VALIDAR CASCADA: Servicio pertenece a la Sede (DatosPrestador)
             servicio = self.servicio
-            if servicio.prestador_id != self.prestador_id:
+            if servicio.prestador_id != self.sede_id:
                 raise ValidationError(
-                    {'servicio': f'El servicio no pertenece al prestador {self.prestador.nombre_prestador}.'}
+                    {'servicio': f'El servicio no pertenece a la sede {sede.nombre_prestador}.'}
                 )
             
-            # ✅ VALIDAR CASCADA: Prestador pertenece a Sede
+            # ✅ VALIDAR CASCADA: Prestador coincide con la sede seleccionada
             prestador = self.prestador
-            if prestador.headquarters_id != self.sede_id:
+            if prestador.id != self.sede_id:
                 raise ValidationError(
-                    {'sede': f'El prestador está registrado en otra sede, no en {sede.name}.'}
+                    {'prestador': f'El prestador debe coincidir con la sede seleccionada.'}
                 )
 
         # ✅ VALIDACIÓN DE VENCIMIENTO
