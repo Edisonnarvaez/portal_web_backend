@@ -21,6 +21,7 @@ class DatosPrestadorListSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'codigo_reps',
+            'nombre_prestador',
             'company_name',
             'clase_prestador',
             'estado_habilitacion',
