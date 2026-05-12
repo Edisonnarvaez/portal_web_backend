@@ -130,7 +130,7 @@ class PlanMejora(models.Model):
     # FK opcionales según el origen
     cumplimiento = models.ForeignKey(
         'habilitacion.Cumplimiento',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='planes_mejora',
@@ -138,7 +138,7 @@ class PlanMejora(models.Model):
     )
     autoevaluacion = models.ForeignKey(
         'habilitacion.Autoevaluacion',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='planes_mejora',
@@ -154,7 +154,7 @@ class PlanMejora(models.Model):
     )
     auditoria = models.ForeignKey(
         'audit.Auditoria',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='planes_mejora',
@@ -162,7 +162,7 @@ class PlanMejora(models.Model):
     )
     resultado_indicador = models.ForeignKey(
         'indicators.Result',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='planes_mejora',
@@ -358,7 +358,7 @@ class Hallazgo(models.Model):
     # FK opcionales según el origen
     autoevaluacion = models.ForeignKey(
         'habilitacion.Autoevaluacion',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='hallazgos',
@@ -366,7 +366,7 @@ class Hallazgo(models.Model):
     )
     datos_prestador = models.ForeignKey(
         'habilitacion.DatosPrestador',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='hallazgos',
@@ -382,7 +382,7 @@ class Hallazgo(models.Model):
     )
     auditoria = models.ForeignKey(
         'audit.Auditoria',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='hallazgos',
@@ -390,7 +390,7 @@ class Hallazgo(models.Model):
     )
     resultado_indicador = models.ForeignKey(
         'indicators.Result',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='hallazgos',

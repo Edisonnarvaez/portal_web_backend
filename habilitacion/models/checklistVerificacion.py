@@ -22,7 +22,7 @@ class ChecklistVerificacion(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='BORRADOR', verbose_name='Estado')
     novedad = models.ForeignKey(
         'NovedadREPS',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='checklists',
         verbose_name='Novedad REPS',
     )

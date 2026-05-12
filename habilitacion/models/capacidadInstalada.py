@@ -14,7 +14,7 @@ class CapacidadInstalada(models.Model):
 
     servicio_sede = models.ForeignKey(
         'ServicioSede',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='capacidades_instaladas',
         verbose_name='Servicio de Sede',
     )

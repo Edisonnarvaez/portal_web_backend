@@ -76,7 +76,7 @@ class SoporteDocumental(models.Model):
         'habilitacion.DatosPrestador',
         null=False,
         blank=False,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='soportes_documentales',
         help_text='Prestador propietario de este documento soporte (REQUERIDO)'
     )
@@ -92,7 +92,7 @@ class SoporteDocumental(models.Model):
         'companies.Company',
         null=False,
         blank=False,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='soportes_documentales',
         help_text='Empresa matriz del documento (REQUERIDO)'
     )
@@ -101,7 +101,7 @@ class SoporteDocumental(models.Model):
         'habilitacion.DatosPrestador',
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='soportes_documentales_sede',
         help_text='Sede  (requerido para nivel SEDE o SERVICIO)'
     )
@@ -111,7 +111,7 @@ class SoporteDocumental(models.Model):
         'habilitacion.ServicioSede',
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='soportes_documentales',
         help_text='Servicio específico (requerido solo para nivel SERVICIO)'
     )
@@ -288,16 +288,16 @@ class SoporteRequerido(models.Model):
         'habilitacion.DatosPrestador',
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='soportes_requeridos',
         help_text='Prestador al cual se requiere este documento'
     )
 
-    empresa = models.ForeignKey('companies.Company', null=True, blank=True, on_delete=models.CASCADE)
-    sede = models.ForeignKey('companies.Headquarters', null=True, blank=True, on_delete=models.CASCADE)
-    servicio = models.ForeignKey('habilitacion.ServicioSede', null=True, blank=True, on_delete=models.CASCADE)
+    empresa = models.ForeignKey('companies.Company', null=True, blank=True, on_delete=models.PROTECT)
+    sede = models.ForeignKey('companies.Headquarters', null=True, blank=True, on_delete=models.PROTECT)
+    servicio = models.ForeignKey('habilitacion.ServicioSede', null=True, blank=True, on_delete=models.PROTECT)
 
-    tipo_documento = models.ForeignKey(TipoDocumentoSoporte, on_delete=models.CASCADE)
+    tipo_documento = models.ForeignKey(TipoDocumentoSoporte, on_delete=models.PROTECT)
 
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='PENDIENTE')
 

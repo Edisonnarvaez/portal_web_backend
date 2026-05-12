@@ -42,7 +42,7 @@ class NovedadREPS(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='BORRADOR', verbose_name='Estado')
     datos_prestador = models.ForeignKey(
         'DatosPrestador',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='novedades_reps',
         verbose_name='Prestador',
     )

@@ -274,7 +274,8 @@ class MiembroEquipoAuditor(models.Model):
     )
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='participaciones_auditoria'
     )
     rol = models.CharField(

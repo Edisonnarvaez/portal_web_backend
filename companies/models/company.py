@@ -28,8 +28,8 @@ class Company(models.Model):
     digit_verification = models.CharField(max_length=10, blank=True, null=True)
     legal_nature = models.CharField(max_length=255,choices=TYPE_LEGAL_NATURE_CHOICES,verbose_name="Naturaleza Legal")
     
-    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name='departamentos')
-    municipality = models.ForeignKey(Municipality, on_delete=models.CASCADE, related_name='municipios')
+    region = models.ForeignKey(Region, on_delete=models.PROTECT, related_name='companies')
+    municipality = models.ForeignKey(Municipality, on_delete=models.PROTECT, related_name='companies')
     
     code_authorize = models.CharField(max_length=50, blank=True, null=True)
     class_healthcare_entity = models.CharField(max_length=10,choices=CLASS_HEALTHCARE_ENTITY_CHOICES,verbose_name="Clase de Entidad de Salud")

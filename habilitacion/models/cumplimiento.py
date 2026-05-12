@@ -1,8 +1,4 @@
-import os
-import uuid
-
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -90,21 +86,4 @@ class Cumplimiento(models.Model):
         return self.documentos
 
 
-ALLOWED_CHECKLIST_EXTENSIONS = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg', '.xls', '.xlsx']
 
-
-def checklist_upload_path(instance, filename):
-    """Ruta de soportes del checklist: media/habilitacion/checklists/<id>/<uuid>_archivo."""
-    unique_name = f'{uuid.uuid4().hex[:12]}_{filename}'
-    checklist_id = instance.checklist_item.checklist_id if instance.checklist_item_id else 'sin_checklist'
-    return os.path.join('habilitacion', 'checklists', str(checklist_id), unique_name)
-
-
-def validate_checklist_extension(value):
-    """Valida extensiones permitidas para soportes documentales de checklist."""
-    ext = os.path.splitext(value.name)[1].lower()
-    if ext not in ALLOWED_CHECKLIST_EXTENSIONS:
-        raise ValidationError(
-            f'Extension "{ext}" no permitida. '
-            f'Extensiones validas: {", ".join(ALLOWED_CHECKLIST_EXTENSIONS)}'
-        )
